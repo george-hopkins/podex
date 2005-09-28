@@ -516,8 +516,10 @@ pod_ext_03_lp:
 	ldi	r16,READ_WORD
 	rcall	hw_read_cmd	; read mem(wAddress)
 	rcall	pod_tx_word	; send to PC
-	add	r21,1		; wAddress++
-	adc	r20,0
+	ldi	r25,2
+	ldi	r24,0
+	add	r21,r25		; wAddress += 2
+	adc	r20,r24
 	subi	r19,1
 	brsh	pod_ext_03_lp
 	subi	r18,1
@@ -585,8 +587,10 @@ pod_ext_06_lp:
 	rcall	pod_rx
 	mov	r23,r17		; get word to r22:r23
 	rcall	hw_write_cmd	; write to mem(wAddress)
-	add	r21,1		; wAddress++
-	adc	r20,0
+	ldi	r25,2
+	ldi	r24,0
+	add	r21,r25		; wAddress += 2
+	adc	r20,r24
 	subi	r19,1		; decrement wCount-er
 	brsh	pod_ext_06_lp
 	subi	r18,1
