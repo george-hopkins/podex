@@ -603,8 +603,8 @@ pod_ext_07:
 	brne	ext_unknown_cmd
 	rcall	pod_rx		; bEClockScalar -- ignore, compute everything from w128EClocks
 	rcall	pod_rx_word	; w128EClocks
-	sts	XSPEED_LO,r20	; #################?!?!?!?####
-	sts	XSPEED_HI,r21	; #########ENDIAN?!###########
+	sts	XSPEED_LO,r21	; big endian
+	sts	XSPEED_HI,r20	; but not really sure
 	lds	r17,SPEED	; is ExtendedSpeed currently in use?
 	cp	r17,BDM12SPEED_X
 	brne	pod_ext_07_0
