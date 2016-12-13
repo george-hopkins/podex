@@ -5,15 +5,27 @@
 	;; :::           :::
 	;; :::::::::::::::::
 	;;
-	;; MP DCE FEL CVUT 04/2004 <mp@duch.cz>
-	;; "Tum podex carmen extulit horridulum"
-	;;	(U.Eco, Il nome della rosa)
+	;; Copyright (C) 2004 Marek Peca <mp@duch.cz>
 	;;
-	;; RS232 <--> Motorola 68HC12 BDM
-	;; Background Debug Mode interface
+	;; This file is part of podex.
+	;;
+	;; podex is free software: you can redistribute it and/or modify
+	;; it under the terms of the GNU General Public License as published by
+	;; the Free Software Foundation, either version 3 of the License, or
+	;; (at your option) any later version.
+	;;
+	;; podex is distributed in the hope that it will be useful,
+	;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+	;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	;; GNU General Public License for more details.
+	;;
+	;; You should have received a copy of the GNU General Public License
+	;; along with podex.  If not, see <http://www.gnu.org/licenses/>.
 	;;
 	;; -*- http://duch.cz/podex/ -*-
 	;;
+	;; RS232 <--> Motorola 68HC12 BDM
+	;; Background Debug Mode interface
 	;; Kevin Ross' BDM12 v4.7 compatible protocol
 	;;
 
