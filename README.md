@@ -4,6 +4,7 @@
 
 ## Documentation
 
+ * [Introduction](./docs/introduction.md)
  * [Hardware](./docs/hardware.md)
  * [Debugging with GDB](./docs/gdb.md)
  * [FAQ](./docs/faq.md)
