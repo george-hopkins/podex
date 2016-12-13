@@ -7,6 +7,7 @@
  * [Introduction](./docs/introduction.md)
  * [Hardware](./docs/hardware.md)
  * [Debugging with GDB](./docs/gdb.md)
+ * [Demo Application](./docs/demo.md)
  * [FAQ](./docs/faq.md)
 
 ## Authors
