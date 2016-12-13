@@ -1,0 +1,99 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- rozhraní 68HC12 BDM -- Příklad použití</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li><a href="index.html">Podex, 68HC12 BDM</a></li>
+<li><a href="podex_hw.html">Hardware</a></li>
+<li><a href="podex_fw.html">Firmware (program unvitř podexu)</a></li>
+<li><a href="podex_gdb.html">Software</a></li>
+<li><i>Příklad použití</i></li>
+<li><a href="podex_faq.html">ČKD</a></li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>Příklad použití</h1>[ <a href="podex_eg.en.html">english</a> ]</td>
+</tr></table>
+<hr>
+<a name="podex_eg"></a>
+
+<p>Jako malinkou ukázečku použití podexu uvedu program v C, který
+zobrazuje osmibitového světelného hada, a postup, jak jej zkompilovat,
+nahrát do RAM či FLASH a ladit. Program předpokládá, že na portu PH je
+připojeno osm svítivek (svítících nejlépe při log.1). Byl odzkoušen na
+desce s M68HC912D60A:
+</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+Krásná fotka desky s připojenými LEDkami...
+</pre></td></tr></table></blockquote>
+<p>Zdrojový text programu
+(<a href="sw/eg/ukazka/ukazka.c">ukazka.c</a>)
+je zde:</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+zdrojááák...
+</pre></td></tr></table></blockquote>
+<p>Program na začátku vlkádá soubor <a href="sw/eg/ukazka/intvec.h">intvec.h</a>, což je definice
+paměťové struktury interrupt_vectors, opsaná z <a href="http://groups.yahoo.com/group/gnu-m68hc11/message/4010">jednoho
+příspěvku</a> v <a href="podex_gdb.html#maillist">mailové konferenci</a>.
+Použitím této
+struktury je pak na začátku programu určena jediná adresa, a sice
+začátek programu (_start, to je místo ve výsledném kompilátu, kde je
+začátek všech začátků). Kdyby program používal obslužné procedury
+nějakých přerušení, bylo by možné je do této struktury přidat.
+Struktura je vložena do sekce linkeru jménem .vectors, ta je na samém
+konci paměti od adresy 0xff00, kde HC12 hledá adresy kam skákat při
+hardwarových událostech. Kdo trochu rozumí GNU ld, asi se mi za toto
+pařešení vysměje, protože se to správně má řešit asi jinak -- tak se na
+mě nezlobte.
+</p>
+<p>Dále jsou definovány konstantní ukazatele do vstupně/výstupního
+paměťového prostoru, a sice DDRH a PORTH, tedy řízení výstupní brány,
+na níž mají být připojena světélka. Funkce sleep() čeká určitou chvilku
+tisícerým opakováním ničeho, aby had neběhal moc rychle. Na věčné
+smyčce hlavního programu není celkem nic zvláštního, až na paskvilní
+vyjádření záměru orotovat osm bitů, které (alespoň v současné verzi)
+kupodivu gcc nezoptimalizuje na rotaci, ale ubožák tam nacpe tu hrůzu
+doslova. Pokud to někoho trápí, může si jistě do zdrojáku vložit kus
+assembleru.
+</p>
+<p>V případě spouštění z FLASHe (tj. samočinně po zapnutí napájení) je
+ještě předefinována funkce __premain (ta se spouští před prvním voláním
+funkce, tedy před voláním main()). V ní je nejprve zakázán zlý hlídací
+pes COP, protože vinou chyby některých HC12 jinak maří funkci programů,
+ovšem zejména je zde přemapována paměť RAM z původní adresy 0x000 (kde
+je nešikovně překryta registry) na adresu 0x800 a dále je o stejnou
+velikost zvětšen zásobník, aby ukazoval na nově umístěnou paměť a ne do
+díry po ní.
+</p>
+<p>Aby linker ld věděl, v jakých adresních rozsazích se má výsledek
+vyskytovat, je mu to třeba sdělit, například tzv. ld-skriptem. Pro
+práci čistě v RAM slouží skript <a href="sw/eg/ukazka/ram.x">ram.x</a>,
+pro umístění programu do FLASH skript <a href="sw/eg/ukazka/flash.x">flash.x</a>. O kompilaci se stará <a href="sw/eg/ukazka/Makefile">Makefile</a>.
+Všechny soubory je možné stáhnout <a href="sw/eg/ukazka/">zde</a>,
+zabalené <a href="sw/eg/ukazka.tar.gz">zde</a>.
+</p>
+<p>Pokud chci zapsat program do paměti FLASH, aby se spustil
+sám po resetu HC12, provedu
+</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+$ make FLASH=cp -f flash.x memory.xm68hc12-gcc -Os -O3 -gstabs -Wl,-m,m68hc12elfb -DFLASH -o ukazka.elf ukazka.c/tmp/ccOkA8sJ.s: Assembler messages:/tmp/ccOkA8sJ.s:41: Warning: setting incorrect section attributes for .vectors$ m68hc12-gdb ukazka.elfGNU gdb 6.0-m68hc1x-2004-02-01Copyright 2003 Free Software Foundation, Inc.GDB is free software, covered by the GNU General Public License, and you arewelcome to change it and/or distribute copies of it under certain conditions.Type "show copying" to see the conditions.There is absolutely no warranty for GDB.  Type "show warranty" for details.This GDB was configured as "--host=i686-pc-linux-gnu --target=m68hc11-elf"...(gdb) target bdm12 ttyS0 4 0x0 0x800 0xd00 0x8000(gdb) load ukazka.elf
+</pre></td></tr></table></blockquote>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+Sem by se hodila taky nějaká fotečka...
+</pre></td></tr></table></blockquote>
+<p>Pokud chci program nahrát do RAM a trochu ladit, mohu psát třeba</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+$ makecp -f ram.x memory.xm68hc12-gcc -Os -O3 -gstabs -Wl,-m,m68hc12elfb  -o ukazka.elf ukazka.c$ m68hc12-gdb ukazka.elfGNU gdb 6.0-m68hc1x-2004-02-01Copyright 2003 Free Software Foundation, Inc.GDB is free software, covered by the GNU General Public License, and you arewelcome to change it and/or distribute copies of it under certain conditions.Type "show copying" to see the conditions.There is absolutely no warranty for GDB.  Type "show warranty" for details.This GDB was configured as "--host=i686-pc-linux-gnu --target=m68hc11-elf"...(gdb) target bdm12 ......
+</pre></td></tr></table></blockquote>
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- rozhraní 68HC12 BDM</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- rozhraní 68HC12 BDM -- Software</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li><a href="index.html">Podex, 68HC12 BDM</a></li>
+<li><a href="podex_hw.html">Hardware</a></li>
+<li><a href="podex_fw.html">Firmware (program unvitř podexu)</a></li>
+<li>
+<i>Software</i><ul>
+<li>
+<a href="podex_gdb.html#4-1">Podex a GNU gdb</a><ul>
+<li><a href="podex_gdb.html#4-1-1">Jak získat gdb pro podex?
+</a></li>
+<li><a href="podex_gdb.html#4-1-2">Základní úkony s podexem v gdb</a></li>
+<li><a href="podex_gdb.html#4-1-3">Programování pamětí FLASH</a></li>
+<li><a href="podex_gdb.html#gdb-flash">FLASH a gdb</a></li>
+<li><a href="podex_gdb.html#4-1-5">Začlenění programovací rutiny do současného (neutěšeného) kódu
+  v gdb</a></li>
+</ul>
+</li>
+<li><a href="podex_gdb.html#4-2">gcc a binutils pro HC11, HC12</a></li>
+</ul>
+</li>
+<li><a href="podex_eg.html">Příklad použití</a></li>
+<li><a href="podex_faq.html">ČKD</a></li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>Software</h1>[ <a href="podex_gdb.en.html">english</a> ]</td>
+</tr></table>
+<hr>
+<a name="podex_gdb"></a>
+
+<a name="4-1"></a><h2>Podex a GNU gdb</h2>
+
+<p>Podex je určen zejména pro práci s vynikajícím GNU debuggerem gdb.
+Gdb ve spolupráci s podexem umožňuje nahrávání kódu do RAM i FLASH
+procesorů HC12, spouštění a krokování programů, používání breakpointů
+apod. s prací na úrovni assembleru i vyššího jazyka (C). Použil jsem
+gdb ve spolupráci s 68HC1x odnoží GNU gcc a binutils, ale v principu by
+měl GNU gdb pracovat i s výstupy z jiných kompilátorů. Podporovány jsou
+formáty souborů ELF, S-record, binární bez záhlaví, jakož i ostatní z
+knihovny bfd, pro ladění na úrovni vyššího jazyka formát stabs (a možná
+nejen ten).
+</p>
+<a name="4-1-1"></a><h3>Jak získat gdb pro podex?
+</h3>
+
+<p>Podporu pro protokol BDM12 Kevina Rosse přidal do 68HC1x odnože gdb
+Timothy Housel. V době tvorby podexu (duben 2004) byla k dispozici
+68HC1x úprava gdb-6.0 označená 20040222 (<a href="http://ftp.gnu.org/pub/gnu/gdb/gdb-6.0.tar.gz">gdb-6.0.tar.gz</a> [<a href="sw/gdb/gdb-6.0.tar.gz">místní záloha</a>],
+<a href="http://m68hc11.serveftp.org/m68hc1x-builder-2.91.tar.gz">m68hc1x-builder-2.91.tar.gz</a>
+[<a href="sw/gdb/m68hc1x-builder-2.91.tar.gz">místní záloha</a>]).
+Doporučuji použít na zdrojový kód BDM12 podpory v
+gdb malou záplatu, která odstraňuje jednu chybu souběhu a zároveň
+natáhne některé časové konstanty, což se ukázalo být nutností zejména
+při použití USB převodníku na RS232 nebo při zátěži systému. (Záplata
+zatím nebyla začleněna do 68HC1x odnože gdb, je ji možno stáhnout
+<a href="sw/gdb/gdb-bdm12-mp.diff">zde</a>.)
+</p>
+<p>GNU gdb je určen zejména k použití v unixových systémech, ale
+podpora BDM12, což se týká přístupu k linkám RTS, CTS sériového portu,
+je psána s ohledem na použití v unixové GNU nadstavbě Gygwin32/Mingw32
+ubohého pasystému M$ Windows. Pro kompilaci gdb si stáhněte uvedené
+zdrojové balíky, oficiální zdroják GNU <tt>gdb-6.0.tar.gz</tt>,
+větev 68HC1x <tt>m68hc1x-builder-2.91.tar.gz</tt> a záplatu
+<tt>gdb-bdm12-mp.diff</tt>. Poté rozbalte, slepte a zkompilujte:
+</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+tar xzvf gdb-6.0.tar.gz
+tar xzvf m68hc1x-builder-2.91.tar.gz
+cd gdb-6.0
+patch -p1 &lt; ../m68hc1x-builder-2.91/gdb-6.0-m68hc1x-20040222.diffs
+patch -p1 &lt; ../gdb-bdm12-mp.diff
+
+./configure --target=m68hc11-elf --program-prefix=m68hc12-
+make
+#případně pak s právy roota make install (implicitně do /usr/local/...)
+</pre></td></tr></table></blockquote>
+<p>Doporučuji připravit si pro práci i 68HC1x odnož GNU gcc a binutils
+(včetně assembleru gas). Ty ovšem bývají často zahrnuty již připravené
+v distribucích GNU (např. Debian Linux), což vás může ušetřit kompilace.
+</p>
+
+<a name="4-1-2"></a><h3>Základní úkony s podexem v gdb</h3>
+
+<p>Práce s podexem se v gdb zahajuje příkazem target bdm12:</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+(gdb) target bdm12
+Usage: target bdm12 &lt;serial_device&gt; &lt;E-clock rate (1,2,4, or 8 MHz)
+                            &lt;register base&gt; &lt;ram base&gt; &lt;eeprom base&gt; &lt;flash base&gt;
+(ex. target bdm12 com1 8 0x0 0x800 0xd00 0x8000 on Win32,
+   or target bdm12 ttya 8 0x0 0x800 0xd00 0x8000 on UNIX)
+</pre></td></tr></table></blockquote>
+<a name="gdb-target"></a>
+<p>Kde serial_device je jméno sériového zařízení, na něž je připojen
+podex, což může být v Linuxu například ttyS? pro běžný COM port PC nebo
+ttyUSB? při použití převodníku na USB. Pozor, v současné verzi přidává
+BDM12 kód v unixu sám předponu "/dev/" k jménu zařízení, což sice
+ušetří písařce 5 úhozů, ale je to omezující a při nejbližší
+příležitosti by to chtělo z gdb vyndat. E-clock_rate je frekvence BDM
+sběrnice cílové HC12, ovšem v současné verzi je omezena na 4
+celočíselné hodnoty, neboť používá pouze firmwarový příkaz
+<a href="podex_fw.html#p-set-param">SetParam</a>
+(zde opět doufám, že co nevidět doplníme podporu pro HC12
+o libovolných kmitočtech, používající firmwarový příkaz
+<a href="podex_fw.html#p-extended-speed">ExtendedSpeed</a>).
+</p>
+<p>Argument register_base informuje podex o tom, že registry budou
+případně někam přesunuty, viz firmwarový příkaz
+<a href="podex_fw.html#p-set-register-base">SetRegisterBase</a>.
+O umístění základních vnitřních pamětí, tj. 2KB RAM,
+32KB FLASH a 768B EEPROM, říkají argumenty ram_base, eeprom_base a
+flash_base. Jak řešit nepřeberné případy různého množství různě velkých
+vnitřních i vnějších pamětí různých typů (RAM, FLASH) u HC12, v tom
+nemám jasno a asi by bylo dobré se podívat do snad pokročilejšího kódu
+gdb pro jiné procesory.
+</p>
+<p>Chceme-li ladit program z binárního souboru, který obsahuje ladicí
+informace (jména funkcí, proměnných, čísla řádků v zdrojovém kódu),
+uvedeme jej buď jako argument při spouštění gdb nebo jej můžeme načíst
+později příkazem file.
+</p>
+<p>Program do procesoru HC12 se nahrává příkazem load (rozsáhlejší
+úseky dat zřejmě příkazem restore, ale to jsem zatím nezkoušel). To je
+vůbec nejdůležitější a zároveň nejzapeklitější úkon s podexem v gdb.
+Program (data) lze totiž zapsat jak do paměti RAM, tak do EEPROM a
+zejména FLASH, kterou gdb prostřednictvím podexu a postupu popsaného
+dále naprogramuje. Tak lze použít gdb jako programátor vnitřních pamětí
+FLASH HC12. Vlastnosti a úskalí zapisování do FLASH jsou popsány v
+další části.
+</p>
+<p>Je-li program nahrán v některé z pamětí HC12, v nejjednodušším
+případě v RAM, může být z gdb spouštěn, krokován, zastavován a jinak
+trápen. Breakpointy je možné nastavit příkazem break, a to na úrovni
+čísla řádku (break 33 či break trabant_svicky.c:1811), jména funkce
+(break pridej_plyn) či adresy v paměti (break *0x8a0d). Program je
+spuštěn příkazem run, přerušuje se stiskem Ctrl-C. Pokračovat je možné
+příkazem continue, krokovat na úrovni zdrojového kódu příkazy step
+(důsledně i s vnořováním do funkcí), next (na další řádek), until
+apod., na úrovni instrukcí strojového kódu příkazy stepi, nexti (nexti
+opět nekrokuje v podprogramech).
+</p>
+<p>Z gdb je rovněž možné hrabat se HC12 v registrech a v paměti, obsah
+všech (že jich je teda u HC12 hodně) registrů je vypsán příkazem regs,
+do registru se zapisuje příkzem set (set $d=-1977, set $pc=0x8000),
+kterým je též možno zapsat do paměti, ať už do proměnné (set
+tachometr=0) či na libovolnou adresu (set *0x804=0xbaba). Možná projde
+i zápis do paměti FLASH, ale nejsem si teď zcela jist, jestli při tom
+současná verze BDM12 podpory v gdb nezničí obsah RAM. Číst samostatné
+registry, proměnné či paměť je možné příkazem print (print $x, print
+*0x806, print motor-&gt;valec[1]). Pro výpis jednotlivých míst v paměti
+se hodí příkaz x (examine), ukazující obsah v různých číselných soustavách
+a různé bitové délky (x/b *0x808 ukáže slabiku z dané adresy,
+x/h *0x808 ukáže z dané adresy 16bitové slovo). Pokud vás popadne
+důvodné podezření či paranoia, a to se stává při ladění velmi často,
+můžete si nechat vypsat v instrukcích obsah paměťového úseku či funkce
+příkazem disassemble (disassemble _start, disassemble uber_plyn,
+disassemble 0x802c 0x8100, bez argumentu vypíše funkci, v níž se zrovna
+HC12 nalézá).
+</p>
+<p>GNU gdb je mocná příšera a pro zjištění možností jeho použití s
+podexem (i mimo něj) se obraťte na jeho příkaz help | pokus&amp;omyl |
+dokumentaci | četbu zdrojáků. Příjemnou zábavu!
+</p>
+<p>Funkce pro podporu BDM12 (a tím i podexu) Tima Housela v GNU gdb
+jsou v souboru bdm12.c, definice konstant a deklarace v souboru
+bdm12.h, to celé je spojeno s hlavním programem gdb souborem
+remote-bdm12.c. Pro účely zápisu do paměti FLASH slouží soubory
+bdm12_eraseflash.h a bdm12_programflash.h.
+</p>
+
+<a name="4-1-3"></a><h3>Programování pamětí FLASH</h3>
+
+<p>Vnitřní paměti FLASH procesorů HC12 se čtou jako bežná paměť, stejně
+jako RAM a EEPROM, ať už libovolnými instrukcemi strojového kódu, nebo
+prostřednictvím BDM příkazy READ_BYTE, READ_WORD. K zápisu do nich je
+ovšem třeba trochu zakouzlit s řídicími registry HC12 a pohlídat
+časování, stejně jako u paměti EEPROM. Narozdíl od paměti EEPROM je
+ovšem není možno programovat pouhým použitím BDM příkazů pro zápis (do
+řídicích registrů a do paměti). K zápisu do vnitřních pamětí FLASH
+procesorů HC12 je třeba nahrát do (RAM) HC12 program, který provádí
+zápis do FLASH, a spustit jej.
+</p>
+<p>Zlá je skutečnost, že vnitřní paměti různých modelů HC12 se z
+programátorského hlediska navzájem liší a nejspíš není možné jedním
+univerzálním programem zapisovat do FLASH všech odrůd HC12. Pán z
+Motoroly mě ale utěšoval, že u řady HCS12 už se poučili a použili
+jednotný přístup ke všem FLASHkám, tak aspoň že vývoj nejde všude jen
+dozadu, jako od pěstního klínu k mobilnímu telefonu. Na druhou stranu
+ale bude stejně všude plno různých vývojových desek s vnějšími pamětmi
+FLASH, takže budeme-li chtít přes BDM programovat i je, budeme opět
+potřebovat pro každou jiný kód.
+</p>
+<p>Programování FLASH HC12 probíhá tak, že se nejprve nahraje někam do
+RAM mazací program, jehož spuštěním je celá FLASH smazána. Poté se
+nahraje do RAM zapisovací program, a do zbylé volné RAM se vždy nahraje
+úsek dat, který je po předání parametrů (umístění úseku v cílové FLASH
+a jeho délka) zapisovacímu programu do FLASH naprogramován. Vyvolávání
+zapisovacího programu se opakuje pro každý další úsek dat, dokud není
+zapsáno vše. Nahrání programů i dat do RAM, jejich spouštění a předání
+parametrů (registrem či místem v RAM) se děje prostřednictvím BDM, po
+ukončení činnosti programy obvykle vyvolají instrukci BGND, což se
+zjistí opět přes BDM čtením stavového registru. Programům je rovněž
+třeba nějak sdělit časovací konstantu, neboť časování přístupu k FLASH
+je v programech odvozeno z taktu HC12.
+</p>
+
+<a name="gdb-flash"></a><h3>FLASH a gdb</h3>
+
+<p>Současná podpora programování FLASH v gdb je žalostná. Tim Housel
+vložil do souborů bdm12_eraseflash.h a bdm12_programflash.h rutiny pro
+programování FLASH odrůdy M68HC12B32, bohužel navíc s pevně danou
+frekvencí HC12 (pevnými časovými konstantami). Viz jejich zdrojový
+kód. Tento kód bez úprav tedy naprogramuje nejspíše pouze HC12B32 s
+krystalem 16MHz.
+</p>
+<p>Jak z toho ven? Nejlepším řešením by bylo mít
+</p>
+<ul>
+<li>jednotné rozhraní pro volání mazacích a zapisovacích programů,
+tj. určené spouštění, případně relokaci, předání parametrů -- adresy
+cíle, případě i zdroje dat, délky úseku a taktovací frekvence procesoru
+  </li>
+<li>sadu (spousty) mazacích a zapisovacích rutin dynamicky
+nahrávaných ze souboru, umístěných mimo kód samotného gdb, kdykoli
+uživatelem upravitelných či doplnitelných</li>
+</ul>
+<p>Takové řešení používá například <a href="http://www.pemicro.com/support/flash_list_menu.cfm">P&amp;E pro HC12</a>,
+<a href="index.html#pavel-pisa">Pavel Píša pro M683xx</a>.
+Otázkou je, jaký formát pro vnější
+dynamicky nahrávané prográmky zvolit, možná by nebyl od věci ELF, v
+němž už je vyřešeno pojmenování symbolů a relokace -- je to ale na
+druhou stranu potvora složitá, není nad prostou krásu binárního soboru
+bez hlavičky... Dále by nebylo špatné zkontrolovat, jestli v jiné části
+gdb pro jiné procesory už někdo nějaký systém dynamického nahrávání
+modulů nepoužívá, aby byly případně snahy sjednoceny. Rád bych se dožil
+takové pružné a účinné podpory FLASHování HC12 v gdb a sám bych na tom
+rád, dovolí-li čas, pracoval, ale momentálně mám hodně jiné práce a tak
+doufám, že se někdo se svou snahou připojí.
+</p>
+<p>Prozatímním řešením by mohlo být definování jednoduchého
+bezhlav(ičkov)ého rozhraní, obdobného kódu Tima Housela, kde by byly
+určeny relativní paměťové pozice nejnutnějších argumentů a případné
+doplnění kostry programu v assembleru či GNU C (s časovací smyčkou opět
+v assembleru), aby mohli současní uživatelé snadno doplnit rutiny pro
+svoje HC12 (či vývojové desky) a rovněž aby byl, narozdíl od současného
+kódu, předán parametr taktovací frekvence.
+</p>
+<p>Co dělat, pořebujete-li za současného stavu věcí používat FLASH u
+svého modelu HC12? Byl jsem ve stejné situaci, když jsem na začátku
+léta potřeboval připravit pro kolegu z katedry podporu vnitřní FLASH
+odrůdy M68HC12D60A, pro jednoduchost alespoň horní 32KB banky. Cestou
+nejmenšího odporu (úprav gdb) aneb cestou největší, leč nejrychlejší
+prasárny, pouze jsem nahradil kód HC12B32 v bdm12_*flash.h kódem pro
+HC12D60A.
+</p>
+<p>Ze studijně-zvědavostních důvodů jsem kód nepsal sám, ale použil
+jsem rutiny, stažitelné <a href="http://www.pemicro.com/support/flash_list_menu.cfm">ze serveru P&amp;E</a>. Cílem bylo zauvažovat
+zároveň o tom, zda by v budoucí (snad se dočkáme) podpoře dynamicky
+nahrávaných modulů nebylo vhodné použít stejnou či podobnou koncepci,
+jako naši předchůdci.
+
+Pokud vám to svědomí a zákony vaší země dovolí, zjistíte, že jsou to vlastně
+o hlavičku s počátečním nastavením jakýchsi registrů obohacené S-recordy;
+tu hlavičku je možné umazat a výsledný soubor kruťácky disassemblovat pomocí
+<tt>m68hc12-objdump -mm68hc12 -D neco.sx</tt>. Potřebujete-li to rychle
+a pro vlastní potřebu, snad se nikdo zlobit nebude.
+</p>
+
+<a name="4-1-5"></a><h3>Začlenění programovací rutiny do současného (neutěšeného) kódu
+  v gdb</h3>
+
+<p>Uvedu postup, kterým jsem, byť velmi prozatimně (a jak víme,
+provizoria jsou věčná), vložil do gdb kód na mazání a zapisování do
+32KB FLASH HC12D60A. Patch gdb pro programování 32KB FLASH u D60A tímto
+kódem je <a href="sw/flash/gdb-blesk_d60.diff">zde</a>.
+</p>
+<ul>
+<li>vytvořit vlastní program, nejspíš v assembleru, ale ani v C by to
+neměl být problém (snad sem dám časem nějaký příklad); programovací
+algoritmus (do kterých registrů kdy co zapsat a kolik mikrosekund kde
+čekat) je popsán v katalogovém listu příslušného procesoru (pro D60A je
+to <a href="doc/MC68HC912D60A.pdf">tady</a> na straně 102),
+někdy dokonce i v technické zpávě
+(pro D60A je to <a href="doc/M68HC12_AN2166.pdf">tahle</a>)</li>
+<li>jak může vypadat
+výsledek, lze se podívat <a href="sw/flash/blesk_d60/blesk.s">sem</a>;
+poznámka: z těžké lenosti jsem nečlenil program na část mazací a programovací,
+nechal jsem to v jednom kuse, i když mazací rutina zabírá v RAM zbytečně místo
+  </li>
+<li>přeložit program -- z nějakého důvodu se mi nedařilo dosíci
+výsledku, tj. binární podoby kódu, umístěného v RAM od adresy 0x800, s
+GNU assemblerem gas a binutils -- při převodu pomocí objcopy mi to
+dávalo místo adres nesmyslné nuly (holt s těmi GNU nástroji neumím,
+nezobte se); řešení, byť trapné:
+    <ul>
+<li>použil jsem assembler ASM12 firmy <a href="http://www.mgtek.com/">MGTEK</a>, stažitelný zdarma
+v spustitelné podobě pro Linux a HP-UX <a href="http://www.mgtek.com/miniide/download/unix.aspx">zde</a>
+</li>
+<li>tento assembler bohužel žere trochu jinou syntaxi než GAS,
+tak jsem si napsal převelice směšný převodní prográmek v perlu
+<a href="sw/flash/blesk_d60/gas2mgtek.pl">gas2mgtek.pl</a>
+</li>
+</ul>
+  </li>
+<li>z programu potom udělat konstantu (globální proměnnou) do
+hlavičkového souboru <tt>bdm*flash.h</tt>, já jsem na to použil
+<a href="sw/flash/blesk_d60/mpconvert.c">mpconvert.c</a>
+(viz původní <tt>convert.c</tt> v komentáři Tima Housela) a tohle
+<a href="sw/flash/blesk_d60/Makefile">Makefile</a>;
+vzniklý hlavičkový soubor je v mém "úsporném" případě
+<a href="sw/flash/blesk_d60/bdm12_programflash.h">vložen</a>
+do bdm12_program i eraseflash.h</li>
+</ul>
+<p>Ukázkové soubory jsou ke stažení <a href="sw/flash/blesk_d60/">zde</a> (zabalené <a href="sw/flash/blesk_d60.tar.gz">zde</a>).
+</p>
+
+
+<a name="4-2"></a><h2>gcc a binutils pro HC11, HC12</h2>
+
+<p>Tvorbou gdb, nástrojů binutils a kompilátorů C a asembleru gcc, gas
+se zabývá <a href="http://m68hc11.serveftp.org/">gnu-m68hc1x</a>
+(<a href="http://stephane.carrez.free.fr/m68hc11_port.php">jiný odkaz</a>). Na těchto stránkách je možné najít
+různé návody a poučky, jak kompilovat pro HC12, jak používat ld a jeho
+skripty, jak využívat v gcc prostředků vlastních procesorům HC12/HC11.
+Rovněž je udržována dotazům a návrhům otevřená mailová konference
+<a name="maillist"></a><a href="http://groups.yahoo.com/group/gnu-m68hc11/">gnu-mc68hc11@yahoogroups.com</a>.
+</p>
+
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- rozhraní 68HC12 BDM</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>

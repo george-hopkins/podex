@@ -1,0 +1,1902 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- 68HC12 BDM interface pod -- Firmware (program inside podex)</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li><a href="index.en.html">Podex, 68HC12 BDM</a></li>
+<li><a href="podex_hw.en.html">Hardware</a></li>
+<li>
+<i>Firmware (program inside podex)</i><ul>
+<li>
+<a href="podex_fw.en.html#3-1">Popis protokolu (aplikační vrstva)</a><ul>
+<li><a href="podex_fw.en.html#3-1-1">Příkazy BDM</a></li>
+<li><a href="podex_fw.en.html#3-1-2">Přehled příkazů podexu</a></li>
+</ul>
+</li>
+<li>
+<a href="podex_fw.en.html#3-2">Popis protokolu (fyzická vrstva)</a><ul>
+<li><a href="podex_fw.en.html#3-2-1">Sériová linka</a></li>
+<li><a href="podex_fw.en.html#3-2-2">Rozhraní BDM</a></li>
+</ul>
+</li>
+<li><a href="podex_fw.en.html#3-3">Popis programu</a></li>
+</ul>
+</li>
+<li><a href="podex_gdb.en.html">Software</a></li>
+<li><a href="podex_eg.en.html">Example application</a></li>
+<li><a href="podex_faq.en.html">FAQ</a></li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>Firmware (program inside podex)</h1>[ <a href="podex_fw.html">česky</a> ]</td>
+</tr></table>
+<hr>
+<a name="podex_fw.en"></a>
+
+
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+*************************
+** ENGLISH TRANSLATION **
+**   . . . . . . . .   **
+**    ...coming soon   **
+*************************
+</pre></td></tr></table></blockquote>
+
+<p>Provoz mezi sériovou linkou (příkazy debuggeru -- řídicího počítače)
+a rozhraním BDM (příkazy BDM) převádí firmware v jednočipu AVR.
+Firmware zkompilovaný pro krystal podexu o frekvenci 9.216MHz a
+sériovou linku o rychlosti 115200b/s je možno ve formátu Intel-HEX
+stáhnout <a name="podex-hex"></a><a href="fw/podex.hex">zde</a>.
+</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+Zde snad někdy bude CGI assembler...
+</pre></td></tr></table></blockquote>
+<p>Můžete si rovněž stáhnout zdrojový kód firmwaru
+<a href="fw/podex.s">podex.s</a>
+(a definiční soubor <a href="fw/2313def.inc">2313def.inc</a>).
+Pomocí GNU binutils pro AVR zkompilujete příkazy:</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+avr-as -o podex.o podex.s
+avr-ld -o podex.out podex.o
+avr-objcopy -R .eeprom -O ihex podex.out podex.hex
+</pre></td></tr></table></blockquote>
+<a name="3-1"></a><h2>Popis protokolu (aplikační vrstva)</h2>
+
+<p>Protokol sériové linky mezi podexem a řídicím počítačem se snaží být
+kompatibilní se zveřejněným protokolem krabičky BDM12 Kevina Rosse ve
+verzi 4.7 (dále jen K.R.BDM12). Protokol je (s výjimkou nadmíru
+zpackaného příkazu TraceTo)
+navržen tak, že řídicí počítač vysílá podexu příkazy, z nichž některé
+jsou doplněny argumenty (daty) a některé mohu mít za následek, že podex
+odešle data v odpověď řídicímu počítači. Provoz je tedy vždy zahájen ze
+strany řídicího počítače a vždy je známo, jaké množství dat je možno
+očekávat v odpověď.
+</p>
+<p>Příkazy protokolu spadají do třech skupin:
+</p>
+<ul>
+<li>vlastní příkazy rozhraní BDM, které podex jen tlumočí mezi
+sériovou linkou a BDM; ty se dělí na
+    <ul>
+<li>hardwarové příkazy BDM -- jsou v procesoru HC12 provedeny s
+žádným nebo alespoň co nejmenším časovým narušením právě vykonávaného
+programu (nejsou totiž tvořeny strojovým kódem procesoru)</li>
+<li>firmwarové příkazy BDM -- jsou tvořeny krátkými rutinami v
+skryté ROM procesoru HC12 a před jejich prováděním musí být pozastaveno
+vykonávání programu jádrem procesoru;
+      </li>
+</ul>
+  </li>
+<li>nutné řídicí povely k nastavení časování BDM sběrnice a k
+ovládání linky RESET (případně linek MODA, MODB) -- toto jsou jediné
+potřebné příkazy kromě tlumočení BDM, které by byly potřeba pro
+plnohodnotné používání BDM rozhraní</li>
+<li>zbytečné příkazy -- příkazy, které jsou obsaženy v protokolu
+Kevina Rosse a stávající programy některé z nich používají, ale je
+možné se bez nich obejít (je pravda, že jejich použití může uspořit
+vytížení sériové linky, přesto jejich existenci považuji za nešťastnou)</li>
+</ul>
+<a name="3-1-1"></a><h3>Příkazy BDM</h3>
+
+<p>Hardwarové příkazy BDM může procesor HC12 provést v jakémkoli
+okamžiku, přičemž obvody procesoru se je pokusí provést tak, aby
+nedošlo k časovému narušení (prodloužení) právě probíhající instrukce.
+To se nemusí podařit, pokud je k provedení příkazu BDM třeba více cyklů
+než jeden.
+</p>
+<p>Firmwarové příkazy BDM je možné provádět pouze, je-li jádro HC12
+pozastaveno -- tento stav se nazývá "BDM aktivní" (ovšem hardwarové
+příkazy BDM je možné vykonávat kdykoli, mimo tento stav i v něm). Do
+stavu s aktivním BDM se může HC12 dostat
+</p>
+<ul>
+<li>již při resetu, je-li v okamžiku náběžné hrany linka BKGD
+(rozhraní BDM)
+v úrovni logické 0</li>
+<li>poté, co procesor vykoná instrukci strojového kódu BGND</li>
+<li>provedením hardwarového příkazu BDM jménem BACKGROUND -- předtím
+musí být tato operace povolena nastavením nejvyššího bitu (0x80) v
+registru STATUS BDM
+  </li>
+</ul>
+<p>V režimu aktivního BDM vykonává jádro HC12 místo uživatelského
+programu kód (firmware) ze zvláštní paměti ROM.
+Režim aktivního BDM je opuštěn tehdy, je-li firmwarovým příkazem BDM
+zahájeno vykonávání uživatelského programu (příkazy GO, TAGGO...).
+Registry BDM (jako například STATUS) a ROM BDM firmwaru jsou umístěny
+mimo uživatelský paměťový prostor a pouze pro účely BDM jsou do něj
+mapovány na adresy 0xff00..0xffff.
+</p>
+
+<a name="3-1-2"></a><h3>Přehled příkazů podexu</h3>
+
+<p>Komunikace probíhá po slabikách (bajtech). První jedna nebo dvě
+slabiky, vyslané počítačem, tvoří příkaz, dále mohou následovat
+argumenty nebo data (vstup) a nějaká data pak mohou být přijata
+(výstup). Počet slabik a přípdně endián (pořadí slabik ve slovu)
+příslušného data je v přehledu uveden v závorce. Endián je značen m
+(malý, tj. méně významné slabiky jako první) a v (velký, tj.
+významnější slabiky jako první). Například Počet(2m) označuje 16bitový
+argument Počet, kde nejprve je vysláno dolních 8 bitů a poté horních
+8 bitů.
+</p>
+<a name="p-sync"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>Sync
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>(zvláštní)
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x00
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>--
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Příkaz Sync nedělá nic, slouží jako neškodná výplň, kterou je možno
+použít k ubití nedokončených načatých příkazů po výpadku komunikace.
+Dokumentace K.R.BDM12 říká, že vyslání 6ti příkazů Sync vrátí krabičku
+z chybového stavu do připraveného stavu (čekání na další příkaz) -- to
+se ovšem nemusí podařit, pokud byl nějakou chybou vyvolán příkaz
+<a href="podex_fw.en.html#p-mem-put">MemPut</a>,
+který může očekávat mnoho vstupních dat.
+</p>
+<a name="reset"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>Reset
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>řídicí
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x01
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>--
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Příkaz Reset dle dokumentace K.R.BDM12 shodí linky RESET i BKGD do
+logické 0, počká 10ms, vrátí RESET do logické 1, počká stanovenou dobu
+a nakonec vrátí BKGD do logické 1. Tím by mělo dojít k resetu procesoru
+do režimu s aktivním BDM. Doba čekání mezi náběžnýmí hranami RESET a
+BKGD je nastavena celým číslem v ms příkazem <a href="podex_fw.en.html#p-set-param">SetParam</a>.
+</p>
+<p>Oproti K.R.BDM12 čeká podex vždy nejméně 1ms (i když je příkazem
+<a href="podex_fw.en.html#p-set-param">SetParam</a> nastaveno 0ms),
+neboť některé zkoušené procesory při těsném
+sledu náběžných hran špatně nabíhaly. Dále není ve skutečnosti u linek
+nastavována pevná logická úroveň 1, ale pouze odpojený stav
+(předpokládám, že na desce je nějaký obvod, který tahá RESET do log.1).
+U linky BKGD je vyslán kraťoučký zrychlovací puls log.1 před přechodem
+do odpojeného stavu. Další změnou je, že před náběžnou hranou BKGD je
+sledováno, zda se linka RESET skutečně vrátila do log.1 -- někdy může
+deska s HC12 obsahovat obvod, který podrží RESET v log.0 déle. Toto chování
+doporučuje <a href="index.en.html#zdenek-rozehnal">Zdeněk Rozehnal</a>.
+</p>
+<a name="p-reset-low"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>ResetLOW
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>řídicí
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x02
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>--
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Shodí linku RESET do log.0.
+</p>
+<a name="p-reset-high"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>ResetHIGH
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>řídicí
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x03
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>--
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Dle K.R.BDM12 nastaví RESET do log.1. Podex nastaví pouze odpojený
+stav.
+</p>
+<a name="p-eeprom-write"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>EEPROMWrite
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>zbytečné
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x05
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>Adresa(2v)
+Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Zapíše Slovo na Adresu do vnitřní paměti EEPROM HC12, přičemž se
+nejprve
+ujistí, zda je třeba slovo na dané adrese mazat a pokud ne,
+naprogramuje pouze přidané bity. Pro přístup k paměti EEPROM musí
+vědět, kde v paměti se nacházejí (kam jsou namapovány) registry HC12 --
+to je podexu sděleno příkazem <a href="podex_fw.en.html#p-set-register-base">SetRegisterBase</a>.
+</p>
+<p>Pozor, nejsem si jist, zda všechny varianty HC12 používají stejný
+přístup k paměti EEPROM. Podex používá registr EEPROG, který by měl
+fungovat v procesorech 68HC12B* a 68HC12D*.
+</p>
+<a name="p-set-register-base"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>SetRegisterBase
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>zbytečné
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x06
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>RegBaseHi(1)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Dá vědět podexu, kde se nacházejí registry HC12, argumentem je
+horních 8 bitů adresy, na níž začínají (jsou namapovány) registry HC12.
+Podex sám neprovede mapování registrů, to musí udělat buď program v
+řídicím počítači nebo v HC12.
+</p>
+<a name="p-bulk-erase-eeprom"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>BulkEraseEEPROM
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>zbytečné
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x07
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>Adresa(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Smaže celou vnitřní EEPROM HC12. Argumentem je adresa, nacházející
+se někde v prostoru, kam je namapována EEPROM. Jinak viz <a href="podex_fw.en.html#p-eeprom-write">EEPROMWrite</a>.
+</p>
+<a name="p-get-version"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>GetVersion
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>(zvláštní)
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x04 0x00
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>--
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>0x47 [Verze(1)]
+      </td>
+</tr>
+</table>
+<p>Dle K.R.BDM12 má tento příkaz vrátit verzi firmwaru a informovat o
+tom, zda jsou přítomny linky MODA, MODB. Pozor, některé nižší verze
+K.R.BDM12 jsou navzájem nekompatibilní jak na aplikační vrstvě, tak na
+<a href="podex_fw.en.html#fyzicka-rts-cts">fyzické</a>
+(použití RTS, CTS rozhraní RS232). Podex vrací konstantně 0xc7,
+tj. verzi 4.7 s linkami MODA, MODB. </p>
+<a name="p-reg-dump"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>RegDump
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>zbytečné
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x04 0x01
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>--
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>0x83 [Příznak(1)]
+StatusBDM(1)
+PC(2v)
+D(2v)
+X(2v)
+Y(2v)
+SP(2v)
+CCR(1)
+      </td>
+</tr>
+</table>
+<p>Příkaz vrátí obsah registru STATUS BDM a registrů jádra HC12. Z
+dokumentace to není zcela jednoznačné, ale zřejmě má být výpis uvozen
+Příznakem, informujícím, že bude vrácen STATUS BDM (0x01) a výpis
+registrů (0x02) a že nebude nic následovat (0x80).
+</p>
+<a name="p-trace-to"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>TraceTo
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>zbytečné
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x04 0x02
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>Režim(1)
+Adresa(2v?) nebo Počet(2v??)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>...
+      </td>
+</tr>
+</table>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+tenhle ošklivej příkaz se popisuje dost špatně...
+</pre></td></tr></table></blockquote>
+<a name="p-mem-dump"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>MemDump
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>zbytečné
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x04 0x03
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>Adresa(2v)
+N(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>N-krát Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Vypíše N slov z paměti HC12 Adresou počínaje (včetně). Adresa musí
+být
+sudá, N nenulové. (Z dokumentace
+K.R.BDM12 není jasné, jakého endiánu mají být argumenty a načtená
+data -- zjištěno z kódu GNU gdb.)
+</p>
+<a name="p-set-param"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>SetParam
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>řídicí
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x04 0x04
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>ECLOCK(1)
+PaceCount(1)
+ResetCount(1)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Tento příkaz nastavuje časování podexu. Argument ECLOCK určuje
+frekvenci sběrnice BDM (0x00 ~ 1MHz, 0x01 ~ 2MHz, 0x02 ~ 4MHz, 0x03 ~
+8MHz, 0x04 ~ jiná frekvence, nastavovaná příkazem ExtendedSpeed). Zbylé
+argumenty udávají časovou prodlevu v ms, PaceCount prodlevu mezi kroky
+příkazu <a href="podex_fw.en.html#p-trace-to">TraceTo</a> a ResetCount prodlevu
+mezi náběžnými hranami příkazu <a href="">Reset</a>.
+</p>
+<a name="p-ioctl"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>IOCTL
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>řídicí
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x04 0x05
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>LineControl(1)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Příkazem IOCTL jsou přímo ovládány výstupní linky podexu -- BKGD,
+RESET, MODA, MODB a svítivé diody. V původním K.R.BDM12 jsou na
+rozšířený konektor BDM ještě vyvedeny signály pro budoucí použití,
+zvané RSRV1 a RSRV2 -- ty v předkládaném zapojení nejsou obsazeny, ale
+v případě potřeby je možné je zapojit na vývody PB4, PB5 jednočipu AVR
+(aniž by bylo třeba měnit firmware). Argument LineControl nastavuje
+zmíněné linky do logických úrovní podle obsahu jednotlivých bitů
+argumentu:
+</p>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>0
+      </td>
+<td>1
+      </td>
+<td>2
+      </td>
+<td>3
+      </td>
+<td>4
+      </td>
+<td>5
+      </td>
+<td>6
+      </td>
+<td>7
+      </td>
+</tr>
+<tr>
+<td>BKGD
+      </td>
+<td>RESET
+      </td>
+<td>červená LED
+      </td>
+<td>zelená LED
+      </td>
+<td>RSRV1
+      </td>
+<td>RSRV2
+      </td>
+<td>MODB
+      </td>
+<td>MODA
+      </td>
+</tr>
+</table>
+<p>Specifikace K.R.BDM12 bohužel nedovoluje nastavení výstupních linek
+do odpojeného stavu, což je dosti nešikovné. Prozatím jsem ve firmware
+podexu nechal příkaz IOCTL nastavovat všechny linky natvrdo do
+výstupního režimu, přičemž linku RESET je možné do odpojeného stavu
+vrátit příkazem <a href="podex_fw.en.html#p-reset-high">ResetHIGH</a>,
+linka BKGD se do něj pak vrací po ukončení
+příkazů BDM.
+</p>
+<a name="p-mem-put"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>MemPut
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>zbytečné
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x04 0x06
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>Adresa(2v)
+N(2v)
+N-krát Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Zapíše do paměti HC12 N slov počínaje Adresou (včetně). Adresa musí
+být sudá, N nenulové. Endián viz <a href="podex_fw.en.html#p-mem-dump">MemDump</a>.
+</p>
+<a name="p-extended-speed"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>ExtendedSpeed
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>řídicí
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x04 0x07
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td>EClockScalar(1)
+128EClocks(2?)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td>--
+      </td>
+</tr>
+</table>
+<p>Příkazem ExtendedSpeed je možno jemně nastavit frekvenci BDM
+sběrnice. Hodnoty argumentů vycházejí z konkrétního firmwaru v
+jednočipu PIC16C715 na 20MHz původního K.R.BDM12. Vztah pro výpočet
+hodnoty EClockScalar v dokumentaci K.R.BDM12 chybí, což ovšem moc
+nevadí, neboť táž informace je obsažena i v druhém 16bitovém argumentu
+-- podex hodnotu EClockScalar ingoruje a časování odvozuje z argumentu
+128EClocks. Tato hodnota je vypočtena ze vztahu
+</p>
+128EClocks = (128e9/f - 1400)/800 = 160e6/f - 1.75
+<p>kde f je frekvence BDM sběrnice v Hz. Dokumentace K.R.BDM12
+doporučuje zaokrouhlení hodnoty 128EClocks nahoru. Endián argumentu
+128EClocks zatím neznám -- není zdokumentován.
+</p>
+<a name="p-background"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>BACKGROUND
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x90
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Způsobí přechod HC12 do režimu aktivního BDM -- pozastaví vykonávání
+uživatelského programu a umožní provádění firmwarových příkazů BDM. Pro
+úspěšné provedení tohoto příkazu je nejprve třeba nastavit nejvyšší bit
+v registru STATUS BDM.
+</p>
+<a name="p-write-byte"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_BYTE
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0xc0
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Adresa(2v)
+SudáSlabika(1)
+LicháSlabika(1)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše slabiku do uživateli přístupné paměti na Adresu, je-li Adresa
+sudá, použije se SudáSlabika, jinak LicháSlabika (opačná je ignorována).
+</p>
+<a name="p-write-bd-byte"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_BD_BYTE
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0xc4
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Adresa(2v)
+SudáSlabika(1)
+LicháSlabika(1)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše slabiku do uživateli skryté paměti BDM na danou Adresu (paměť
+BDM je mapována od adresy 0xff00). Je-li Adresa sudá, použije se
+SudáSlabika, jinak LicháSlabika (opačná je ignorována).</p>
+<a name="p-write-word"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_WORD
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0xc8
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Adresa(2v)
+Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše Slovo do uživateli přístupné paměti na Adresu. Adresa musí
+být sudá.
+</p>
+<a name="p-write-bd-word"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_BD_WORD
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0xcc
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Adresa(2v)
+Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše Slovo do uživateli skryté paměti BDM na danou Adresu. Adresa
+musí být sudá.
+</p>
+<a name="p-read-byte"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_BYTE
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0xe0
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Adresa(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> SudáSlabika(1)
+LicháSlabika(1)
+      </td>
+</tr>
+</table>
+<p>Čte slabiku z Adresy v uživateli přístupné paměti. Je-li Adresa
+sudá, je výsledek vrácen v SudéSlabice, jinak v LichéSlabice.
+</p>
+<a name="p-read-bd-byte"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_BD_BYTE
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0xe4
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Adresa(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> SudáSlabika(1)
+LicháSlabika(1)
+      </td>
+</tr>
+</table>
+<p>Čte slabiku z Adresy v uživateli skryté paměti BDM. Je-li Adresa
+sudá, je výsledek vrácen v SudéSlabice, jinak v LichéSlabice. </p>
+<a name="p-read-word"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_WORD
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0xe8
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Adresa(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Čte Slovo z Adresy v uživateli přístupné paměti. Adresa musí být
+sudá.
+</p>
+<a name="p-read-bd-word"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_BD_WORD
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>hardwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0xec
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Adresa(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Čte Slovo z Adresy v uživateli skryté paměti BDM. Adresa musí být
+sudá.
+</p>
+<a name="p-go"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>GO
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x08
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Ukončí režim aktivního BDM a zahájí vykonávání uživatelského
+programu.
+</p>
+<a name="p-trace1"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>TRACE1
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x10
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Vykoná jednu instrukci uživatelského programu a poté se vrátí zpět
+do režimu aktivního BDM.
+</p>
+<a name="p-taggo"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>TAGGO
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x18
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapne značkování (tagging) instrukcí a zahájí vykonávání
+uživatelského programu (značkování instrukcí nerozumím).
+</p>
+<a name="p-write-next"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_NEXT
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x42
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zvětší registr X o dvojku, poté zapíše na adresu z registru X dané
+Slovo.
+</p>
+<a name="p-write-pc"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_PC
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x43
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše Slovo do registru PC.
+</p>
+<a name="p-write-d"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_D
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x44
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše Slovo do registru D.
+</p>
+<a name="p-write-x"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_X
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x45
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše Slovo do registru X.
+</p>
+<a name="p-write-y"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_Y
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x46
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše Slovo do registru Y.
+</p>
+<a name="p-write-sp"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>WRITE_SP
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x47
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> --
+      </td>
+</tr>
+</table>
+<p>Zapíše Slovo do registru SP.
+</p>
+<a name="p-read-next"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_NEXT
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x62
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Zvětší registr X o dvojku, poté přečte z adresy z registru X vracené
+Slovo.
+</p>
+<a name="p-read-pc"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_PC
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x63
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Vrátí obsah registru PC.
+</p>
+<a name="p-read-d"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_D
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x64
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Vrátí obsah registru D.
+</p>
+<a name="p-read-x"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_X
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x65
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Vrátí obsah registru X.
+</p>
+<a name="p-read-y"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_Y
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x66
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Vrátí obsah registru Y.
+</p>
+<a name="p-read-sp"></a>
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>jméno:
+      </td>
+<td>READ_SP
+      </td>
+</tr>
+<tr>
+<td>skupina:
+      </td>
+<td>firmwarové BDM
+      </td>
+</tr>
+<tr>
+<td>příkaz:
+      </td>
+<td>0x67
+      </td>
+</tr>
+<tr>
+<td>vstup:
+      </td>
+<td> --
+      </td>
+</tr>
+<tr>
+<td>výstup:
+      </td>
+<td> Slovo(2v)
+      </td>
+</tr>
+</table>
+<p>Vrátí obsah registru SP.
+</p>
+<p>Pro podrobnější popis příkazů BDM doporučuji nahlédnout do
+dokumentace procesorů Motorola řad HC12 a HCS12. Časování BDM včetně
+nezbytných prodlev na provedení příkazů BDM je zajištěno firmwarem
+podexu.
+</p>
+
+
+<a name="3-2"></a><h2>Popis protokolu (fyzická vrstva)</h2>
+
+<a name="3-2-1"></a><h3>Sériová linka</h3>
+
+<a name="fyzicka-rts-cts"></a>
+<p>Podex komunikuje s řídicím počítačem dle K.R.BDM12 verze 4.7, tj. po
+sériovém rozhraní typu RS232 s použitím signálů RTS a CTS. Rychlost
+sériového přenosu je pevně nastavena (v prototypu 115200b/s), používá
+se 1 stopbit, 8 datových bitů a žádná parita. Příjem slabik z podexu do
+řídicího počítče probíhá bez účasti linek RTS, CTS, kdežto vysílání
+slabik z počítače do podexu je oboustranně potvrzováno. Tím je
+zabezpečena připravenost podexu k vykonání příkazu. V dalším bude linka
+CTS řídicího počítače, která je linkou RTS podexu, označována jako
+RTS_pod, linka RTS řídicího počítče, která je linkou CTS podexu, jako
+CTS_pod.
+</p>
+<p>V klidovém stavu (1), kdy podex čeká na zahájení příjmu slabiky, je
+RTS_pod i CTS_pod v log.0. Když řídicí počítač nastaví CTS_pod do
+log.1, přejde podex do stavu čekání na příjem slabiky (2) a nastaví
+RTS_pod do log.1. Pokud řídicí počítač místo vyslání slabiky vrátí
+CTS_pod do log.0, vrací se podex do počátečního stavu (1). Jinak po
+přijetí slabiky podexem ze sériové linky přejde podex do stavu (3), což
+potvrdí shozením RTS_pod do log.0. V tomto stavu setrvá, dokud řídicí
+počítač neshodí i CTS_pod do log.0. Potom může následovat příjem další
+slabiky, nebo libovolně dlouhé provádění příkazu (včetně případného
+příjmu dat z podexu do řídicího počítače).
+</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+tady by měl být hezký obrázek stavů...
+</pre></td></tr></table></blockquote>
+<p>Malou výjimkou je příkaz TraceTo, který může být přerušen během
+svého provádění tím, že řídicí počítač nastaví CTS_pod do log.1.
+</p>
+<p>Někomu možná připadá zvláštní použít tak složitý potvrzovací postup.
+V starších verzích K.R.BDM12 byla skutečně použita pouze linka RTS_pod,
+aby bylo zabezpečeno, že řídicí počítač nebude vysílat příkazy, dokud
+krabička pracuje. Kevin Ross ale píše, že s tímto jednoduchým
+potvrzováním byly problémy na některých nových počítačích PC. Věřím
+tomu, neboť i od jiných vývojářů jsem slyšel stížnosti na ubohou
+funkčnost sériových portů novějších PC. V případě potřeby není problém
+upravit proceduru příjmu slabiky podexem, aby používala jiný druh
+potvrzování.
+</p>
+
+<a name="3-2-2"></a><h3>Rozhraní BDM</h3>
+
+<p>BDM HC12 je jednovodičové obousměrné třístavové rozhraní s časováním
+vázaným na pevnou frekvenci (frekvenci BDM sběrnice, u řady HC12
+odpovída frekvenci EClock, tj. polovině frekvence krystalu procesoru).
+V dalším budu označovat časovou jednotku odpovídající jedné periodě
+EClock jako 1E. V klidovém stavu je linka BKGD sběrnice v úrovni
+kldného napětí (log.1), deska s HC12 by měla obsahovat rezistor
+(4..10kOhm) tahající nahoru.
+</p>
+<p>Přenos jednoho bitu vždy zahajuje protějšek HC12 -- řídicí počítač
+(host) tím, že stáhne linku do log.0 po jmenovitou dobu 4E (nejméně
+2E). Časování přenosu jednoho bitu se odvozuje od okamžiku zjištění
+sestupné hrany procesorem HC12 -- to se stane v době od 0 do 1E od
+okamžiku sestupné hrany.
+</p>
+<p>Pokud je bit přenášen směrem do HC12, podrží řídicí počítač linku v
+log.0, má-li být vyslán nulový bit, jinak nastaví (natvrdo) log.1,
+má-li být vyslán jedničkoý bit. HC12 čte logickou úroveň linky v
+okamžiku 10E od zjištění sestupné hrany. Pokud byl vysílán nulový bit,
+řídicí počítač v okamžiku 13E od sestupné hrany vrátí linku do
+klidového stavu log.1. Od okamžiku 16E od sestupné hrany dále je možné
+přenášet další bity.</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+tady by měl být obrázek průběhu signálů při vysílání bitu do HC12...
+</pre></td></tr></table></blockquote>
+<p>Pokud je bit přenášen směrem z HC12, odpojí řídicí počítač po
+ukončení zahajovacího log.0 pulsu výstup od sběrnice a nastavení bitu
+je ponecháno na HC12. Ta buď podrží linku v log.0, má-li být vyslán
+nulový bit, nebo v okamžiku 7E od zjištění sestupné hrany vyšle krátký,
+tzv. zrychlovací puls, který uspíší návrat úrovně linky do log.1 (v
+odpojeném stavu se nabíjí vedení přes tahací odpor a doba tohoto
+procesu není zanedbatelná). Řídicí počítač by měl přečíst logickou
+úroveň linky v čase 10E od sestupné hrany. Pokud HC12 vysílala nulový
+bit, v okamžiku 13E od zjištění sestupné hrany vrátí sběrnici do
+klidového stavu log.1. Od okamžiku 16E od sestupné hrany dále je možné
+přenášet další bity.
+</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+tady by měl být obrázek průběhu signálů při příjmu bitu z HC12...
+</pre></td></tr></table></blockquote>
+<p>Firmware podexu se snaží časovat vysílání bitu do HC12 posloupností:
+log.0, prodleva 4E, úroveň dle bitu, prodleva 9E, log.1, prodleva 3E;
+příjem bitu z HC12 posloupností: log.0, prodleva 4E, odpojeno, prodleva
+6E, čtení úrovně, prodleva 6E. Prodlevy jsou relizovány co nejkratšími
+smyčkami, které mají dobu trvání obecně (3*N+M)T, kde 1T je perioda
+frekvence jednočipu AVR, N je časovací konstanta, počítaná podexem z
+řídicím počítačem sdělené frekvence BDM. Smyčky jsou stavěny tak, že
+nejkratší prodlevy je dosaženo při N=1. Nejkratší prodleva je tedy
+(3+M)T, do čehož jsou rovněž započítány operace nastavování či čtení
+vstupně-výstupní linky sběrnice.
+</p>
+<p>Toto je také hlavním omezujícím prvkem podexu, postaveného na
+mikroprocesoru. Podex se stávajícími smyčkami, které, řekl bych, už
+nejdou (u AVR) při zachování proměnného časování zkrátit, by měl
+teoreticky pracovat zhruba do frekvence BDM 120% frekvence vlastního
+jednočipu AVR.
+</p>
+
+
+<a name="3-3"></a><h2>Popis programu</h2>
+
+<p>Zdrojový kód firmwaru podexu je v assembleru procesorů Atmel AVR (v
+malé variantě pro AT90S2313).
+</p>
+<p>V úvodu jsou definovány číselné konstanty, zejména POD_XTAL_640A a
+POD_XTAL_640B, pro něž by mělo platit, že podíl
+POD_XTAL_640A/POD_XTAL_640B je roven frekvenci krystalu podexu dělené
+640MHz. Tyto konstanty jsou použity pro výpočet časování smyček
+celočíselnou aritmetikou z hodnoty 128EClocks, udávané příkazem
+EtendedSpeed. Následuje konstanta BAUD_RATE, z níž je již při kompilaci
+určena hodnota UBRR pro stanovení rychlosti asynchronního sériového
+přenosu RS232.
+</p>
+<p>Dále je definováno umístění proměnných v paměti AVR, a sice
+REG_BASE_HI (viz SetRegisterBase), PACE_COUNT, RESET_COUNT (viz
+SetParam), SPEED, XSPEED_* (rychlosti dle SetParam a ExtendedSpeed),
+8bitové časovací konstanty WAIT_BDM* pro vysílání/příjem bitů BDM a
+16bitové čsovací konstanty WAIT_*, určené pro nezbytné prodlevy pro
+vykonání BDM příkazů. Následuje výčet operačních kódů BDM i ostatních
+příkazů protokolu podexu.
+</p>
+<p>Podex pracuje bez použití přerušení, tabulka vektorů obsahuje jen
+hluchou výplň. Po spuštění AVR je nastaven zásobník, vstupně-výstupní
+brána, sériové rozhraní, implicitní frekvence BDM 8MHz. Po tomto
+nastavení přechází podex do hlavní smyčky. Na počátku hlavní smyčky
+čeká podex na příjem slabiky z řídicího počítače a dále se program
+větví podle jejího obsahu. Pořadě jsou obslouženy:
+</p>
+<ul>
+<li>jednoslabičný hardwarový příkaz BDM (připadá v úvahu jen
+BACKGROUND), následovaný předepsanou prodlevou 150E</li>
+<li>jednoslabičné firmwarové příkazy BDM, následované předepsanou
+prodlevou 64E</li>
+<li>hardwarové příkazy BDM s dvěma slabikami adresy a dvěma slabikami
+dat, obsluhované procedurami hw_read_cmd, hw_write_cmd</li>
+<li>firmwarové příkazy BDM s dvěma slabikami dat, obsluhované
+procedurami fw_read_cmd, fw_write_cmd</li>
+<li>příkazy s jednoslabičným operačním kódem
+    <ul>
+<li>Reset</li>
+<li>ResetLOW</li>
+<li>ResetHIGH</li>
+<li>EEPROMWrite -- používá registr HC12 EEPROG, v případě, že
+jedničkové bity, obsažené v nově programovaném slovu, jsou ve
+stávajícím slovu na dané adrese již obsaženy, nemaže slovo, pouze
+doprogramuje zbývající jedničkové bity</li>
+<li>SetRegisterBase</li>
+<li>BulkEraseEEPROM</li>
+<li>Sync -- nejhezčí příkaz roku</li>
+</ul>
+  </li>
+<li>příkazy s dvouslabičným operačním kódem (první slabika je 0x04,
+nazývají se "rozšířené")
+    <ul>
+<li>Version -- druhý nejhezčí příkaz roku</li>
+<li>RegisterDump -- volá proceduru reg_dump</li>
+<li>TraceTo -- nejošklivější příkaz století, navíc neznám jeho
+správné chování; používá rovněž proceduru reg_dump</li>
+<li>MemDump</li>
+<li>SetParam -- i v případě, že je uživatelem zvolena jedna z
+frekvencí BDM 1, 2, 4, 8 MHz, je proveden výpočet časovacích konstant z
+hodnoty 128EClocks = (1280/F - 14)/8, kde F jsou frekvence v MHz;
+výpočet časovacích konstant provádí procedura set_speed z proměnné
+XSPEED_*, do níž je uložena hodnota 128EClocks</li>
+<li>MemPut</li>
+<li>ExtendedSpeed -- nastaví proměnnou XSPEED_* a volá proceduru
+set_speed</li>
+</ul>
+  </li>
+</ul>
+<p>V případě, že první přijatá slabika není operačním kódem žádného
+příkazu, je rozsvícena červená dioda a čeká se na další příkaz. V
+případě, že byl úspěšně dokončen existující příkaz, je červená dioda
+zhasnuta. Po dobu čekání na příkaz (první slabiku) svítí zelená dioda,
+po dobu vykonávání příkazu je zhasnuta.
+</p>
+<p>V kódu následují různé procedury, využívané při obsluze příkazů:
+</p>
+<ul>
+<li>reg_dump -- pošle obsah registrů řídicímu počítači; k tomu
+potřebuje, aby byla HC12 ve stavu s aktivním BDM -- předpokládám, že
+tento stav je již předem zapnut řídicím počítačem; obsah stavového
+registru HC12 CCR je čten z jeho zálohy v BDM registru CCR_SAVE (0xff06)</li>
+<li>pod_rx_addrcount -- přijme adresu a počet slov od řídicího
+počítače, slouží příkazům MemDump a MemPut</li>
+<li>eeprom_write -- maže nebo programuje EEPROM HC12</li>
+<li>set_speed --
+    <blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>tady se musím trochu rozepsat o počítání časovacích smyček...</pre></td></tr></table></blockquote>
+    <ul><li>comp_delay</li></ul>
+  </li>
+<li>hw_read_cmd, hw_write_cmd, fw_read_cmd, fw_write_cmd -- provádějí
+hardwarové a firmwarové příkazy čtení a zápisu dat včetně předepsaných
+prodlev -- volány z většiny příkazů
+  </li>
+<li>pod_rx_word, pod_tx_word -- zkratky pro příjem/vyslání 16bitového
+čísla mezi podexem a řídicím počítačem</li>
+<li>pod_rx(__) -- příjem slabiky z řídicího počítače dle popsaného
+potvrzovacího rituálu RTS, CTS</li>
+<li>pod_tx -- vyslání slabiky řídicímu počítači (obejde se bez tance
+s RTS, CTS)</li>
+<li>bdm_rx, bdm_tx -- příjem/vyslání slabiky na BDM, volá 8x
+proceduru pro zpracování jednoho bitu</li>
+<li>bdm_rx_bit, bdm_tx_bit -- příjem/vyslání jednoho bitu na BDM s
+použitím 8bitových časovacích konstant v RAM, vypočtených procedurou
+set_speed</li>
+<li>wait_*E -- předepsané prodlevy pro vykonání příkazů BDM,
+používající 16bitové časovací konstanty v RAM, vypočtené procedurou
+set_speed</li>
+<li>mul24u8 -- celočíselné násobení bez znaménka 24bitového čísla
+8bitovým s uložením výsledku do 24bitů -- používáno procedurou set_speed
+  </li>
+<li>div24u24 -- 24bitové dělení se zbytkem bez znaménka -- používáno
+procedurou set_speed</li>
+</ul>
+
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- 68HC12 BDM interface pod</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>

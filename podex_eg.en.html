@@ -1,0 +1,104 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- 68HC12 BDM interface pod -- Example application</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li><a href="index.en.html">Podex, 68HC12 BDM</a></li>
+<li><a href="podex_hw.en.html">Hardware</a></li>
+<li><a href="podex_fw.en.html">Firmware (program inside podex)</a></li>
+<li><a href="podex_gdb.en.html">Software</a></li>
+<li><i>Example application</i></li>
+<li><a href="podex_faq.en.html">FAQ</a></li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>Example application</h1>[ <a href="podex_eg.html">česky</a> ]</td>
+</tr></table>
+<hr>
+<a name="podex_eg.en"></a>
+
+<p>As a very little demonstration of podex use, here follows a program
+in C, which displays eightbit moving light ("snake"), and guide how to
+compile it, load to RAM or FLASH and debug. Program expects, that there
+are eight lights connected to port PH (switched on by level H). It has
+been tested on a board with M68HC912D60A:</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+Beautiful photo of board with LED's attached...
+</pre></td></tr></table></blockquote>
+<p>Program
+(<a href="sw/eg/ukazka/ukazka.c">ukazka.c</a>)
+source:</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+wonderful source...
+</pre></td></tr></table></blockquote>
+<p>At the beggining, source includes definition file
+<a href="sw/eg/ukazka/intvec.h">intvec.h</a>,
+where is defined data structure interrupt_vectors, copied from
+<a href="http://groups.yahoo.com/group/gnu-m68hc11/message/4010">one
+post</a> in
+<a href="podex_gdb.en.html#maillist">mailing-list</a>.
+Only one entry in this
+structure is used -- start of the program (_start is the very beggining
+of compiled program). If the program would use some interrupt handlers,
+their names should be added to this structure. This structure is
+inserted to a linker section called .vectors, which is on the end of
+memory address space, starting with address 0xff00, where HC12 looks
+for hardware event handler pointers. Who knows GNU ld well, he will
+perhaps find my strange solution fool, so, please, excuse me.
+</p>
+<p>Follow a definition of I/O space constant pointers DDRH and PORTH,
+ie. control registers of output port, which has to be attached to
+lights. Function sleep() does a delay by thousands repetitions of
+nothing to get a speed of snake's motion reasonable. The eternal loop
+of main program contains no magic, only a very weird expression of
+rotation of eight bits, which isn't (at least in current version)
+optimized to a rotation instruction by gcc, what a wonder, gcc places
+this ugly thing in output verbatim. If anybody suffers from this, there
+is no problem to insert a piece of assembler in source.
+</p>
+<p>In the case of execution from FLASH (ie. automatically after reset
+or power on) there is redefined the __premain function, which is called
+before first function call, so it means before call of main(). In this
+function, there is on the first place disabled an evil watchdog COP,
+because some HC12's are buggy and need this to not to be stopped by it.
+But mainly, there is remapped RAM memory from original location at
+0x000 (which isn't very handy, because it's overlapped with control
+registers) to new address 0x800 and then the stack pointer is moved by
+the same distance to point to newly located RAM and not to the hole at
+old location.
+</p>
+<p>Linker ld should know, in which address range should the result
+reside, it is possible to specify this by a so called ld-script. For
+operation with RAM only, there has been created script
+<a href="sw/eg/ukazka/ram.x">ram.x</a>,
+for placement of program to FLASH there is a script
+<a href="sw/eg/ukazka/flash.x">flash.x</a>.
+Compilation is exeuted using <a href="sw/eg/ukazka/Makefile">Makefile</a>.
+All needed files can be downloaded <a href="sw/eg/ukazka/">here</a> (packed
+in .tar.gz <a href="sw/eg/ukazka.tar.gz">here</a>).</p>
+<p>If I want the program to be in FLASH, to be run automatically after
+HC12 reset, I can issue
+</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+$ make FLASH=cp -f flash.x memory.xm68hc12-gcc -Os -O3 -gstabs -Wl,-m,m68hc12elfb -DFLASH -o ukazka.elf ukazka.c/tmp/ccOkA8sJ.s: Assembler messages:/tmp/ccOkA8sJ.s:41: Warning: setting incorrect section attributes for .vectors$ m68hc12-gdb ukazka.elfGNU gdb 6.0-m68hc1x-2004-02-01Copyright 2003 Free Software Foundation, Inc.GDB is free software, covered by the GNU General Public License, and you arewelcome to change it and/or distribute copies of it under certain conditions.Type "show copying" to see the conditions.There is absolutely no warranty for GDB.  Type "show warranty" for details.This GDB was configured as "--host=i686-pc-linux-gnu --target=m68hc11-elf"...(gdb) target bdm12 ttyS0 4 0x0 0x800 0xd00 0x8000(gdb) load ukazka.elf
+</pre></td></tr></table></blockquote>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+Another nice photo...
+</pre></td></tr></table></blockquote>
+<p>If I'd like to load the program to RAM and debug it a little bit, I
+can write eg.</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+$ makecp -f ram.x memory.xm68hc12-gcc -Os -O3 -gstabs -Wl,-m,m68hc12elfb  -o ukazka.elf ukazka.c$ m68hc12-gdb ukazka.elfGNU gdb 6.0-m68hc1x-2004-02-01Copyright 2003 Free Software Foundation, Inc.GDB is free software, covered by the GNU General Public License, and you arewelcome to change it and/or distribute copies of it under certain conditions.Type "show copying" to see the conditions.There is absolutely no warranty for GDB.  Type "show warranty" for details.This GDB was configured as "--host=i686-pc-linux-gnu --target=m68hc11-elf"...(gdb) target bdm12 ......
+</pre></td></tr></table></blockquote>
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- 68HC12 BDM interface pod</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>

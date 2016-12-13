@@ -1,0 +1,221 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- rozhraní 68HC12 BDM -- Podex, 68HC12 BDM</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li>
+<i>Podex, 68HC12 BDM</i><ul>
+<li><a href="index.html#1-1">Co je BDM Motoroly HC12?</a></li>
+<li><a href="index.html#1-2">Co je podex (BDM "pod")?</a></li>
+<li><a href="index.html#1-3">S čím podex funguje?</a></li>
+<li>
+<a href="index.html#1-4">Nějaká lepší řešení?</a><ul><li><a href="index.html#1-4-1">Odkazy</a></li></ul>
+</li>
+</ul>
+</li>
+<li><a href="podex_hw.html">Hardware</a></li>
+<li><a href="podex_fw.html">Firmware (program unvitř podexu)</a></li>
+<li><a href="podex_gdb.html">Software</a></li>
+<li><a href="podex_eg.html">Příklad použití</a></li>
+<li><a href="podex_faq.html">ČKD</a></li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>Podex, 68HC12 BDM</h1>[ <a href="index.en.html">english</a> ]</td>
+</tr></table>
+<hr>
+<a name="index"></a>
+
+<a name="1-1"></a><h2>Co je BDM Motoroly HC12?</h2>
+
+<p>BDM (background debugging mode) u procesorů Motorola řady 68HC12 se
+nazývá</p>
+<ul>
+<li>zvláštní režim procesoru, v němž je možné zasahovat do vykonávání
+programu, číst a zapisovat do paměti a registrů, ladit program
+(nastavovat breakpointy, watchpointy, krokovat)</li>
+<li>rozhraní procesoru HC12, jímž je možné režim BDM ovládat (z
+jiného počítače)</li>
+</ul>
+<p>Rozhraní BDM se používá jak na ladění programů v jednočipových
+počítačích HC12, tak na programování pamětí FLASH těchto počítačů. BDM
+je u HC12 nejschůdnější cestou k naprogramování vnitřní paměti FLASH
+procesoru, lze jím ovšem programovat i paměti vnější, které bývají
+osazeny například na některých vývojových deskách.
+</p>
+<p>BDM, používané u procesorů Motorola HC12, je uplatněno pouze v
+procesorech této řady. Odlišné rozhraní (se stejným názvem BDM a
+podobnou funkcí) používá Motorola například pro 32bitovou řadu 68300.
+Jiným, obdobným, ale obecnějším rozhraním, používaným mnoha výrobci jak
+v procesorech a jednočipových počítačích, tak v programovatelných
+logických polích a pamětech, je <a href="http://www.inaccessnetworks.com/projects/ianjtag/jtag-intro/jtag-intro.html">JTAG</a>.
+</p>
+
+<a name="1-2"></a><h2>Co je podex (BDM "pod")?</h2>
+
+<p>Náš podex je rozhraní (v hmatatelném smyslu, tj. krabička,
+zapojení -- dále jen "krabička"), propojující BDM procesoru HC12 s
+jiným počítačem (z něhož se
+HC12 programuje a ladí). Podex se z jedné strany připojuje k
+rozhraní BDM (standardní 6tipólový nebo rozšířený 10tipólový konektor)
+a z druhé k sériovému portu RS232 počítače. Pracuje dobře i s
+převodníkem USB-RS232 a měl by spolupracovat i s jinými počítači, než
+Intel/IBM PC.
+</p>
+<p>Schéma zapojení, návod na výrobu a program (firmware) pro jednočip,
+v podexu obsažený, je zde zveřejněn zdarma. Cena součástek se
+pohybuje kolem 150Kč (a stále klesá...).
+</p>
+<p>V době vývoje podexu mi byly ze všech mnoha stávajících
+BDM krabiček známy pouze dvě, u nichž bylo zveřejněno schéma zapojení:
+</p>
+<ul>
+<li>krabička Malte Avenhause, jejíž autor zveřejnil i firmware
+jednočipu; tato krabička ale bohužel není, pokud je mi známo,
+podporována žádným debuggerem</li>
+<li>krabička Kevina Rosse, která je komerční, ale prodávána jako
+stavebnice; jako jediná vedle Malte Avenhause měla zveřejněn
+komunikační
+protokol a je podporována dvěma komerčními
+debuggery a GNU gdb</li>
+</ul>
+<p>Podex byl navržen tak, aby byl protokolově slučitelný s
+krabičkou Kevina Rosse. Hlavním cílem bylo vytvořit levnou a volně
+dostupnou BDM krabičku, která bude pracovat s GNU gdb debuggerem.
+Považuji za lepší řešení použít protokol Kevina Rosse (byť je poněkud
+přihlouplý), pro nějž je již v GNU gdb rozpracována podpora (a rozšířit
+tak její použití, spolu s více uživateli i vychytat víc chyb), než
+vytvořit další, funkčně stejný protokol a cpát do gdb nadbytečnou
+podporu pro zhruba tu samou věc.
+</p>
+<p>Podex spojuje jednovodičové obousměrné rozhraní BDM (které vyžaduje
+poměrně přesné časování a není proto možné realizovat čistě programově
+bez dodržení některých důležitých časových rozmezí) se sériovou linkou
+nadřazeného počítače. Naprostou většinu datového provozu podex pouze
+předává mezi sériovou linkou a BDM, zbytek pak tvoří ze strany počítače
+některé služební příkazy, jako nastavení časové konstanty BDM (podle
+rychlosti, na které běží HC12) nebo ovládání signálu RESET procesoru
+HC12, který je rovněž k podexu připojen. Podex je navržen na základě
+jednočipového počítače Atmel řady AVR, v představovaném zapojení
+konkrétně modelu AT90S2313. Z použití jednočipu jako převodníku BDM
+(oproti použití například hradlového pole) plyne ovšem omezení
+frekvence BDM sběrnice (a tedy i frekvence, na níž běží připojený HC12
+procesor).
+</p>
+
+<a name="1-3"></a><h2>S čím podex funguje?</h2>
+
+<p>Podex je možno připojit k BDM všech jednočipových počítačů, desek a
+zařízení, postavených na jádru Motorola HC12 nebo HCS12, která mají
+</p>
+<ul>
+<li>frekvenci BDM (rovná polovině taktovací frekvence) nejvýše zhruba
+rovnou frekvenci použitého jednočipu AVR v podexu; tedy v představeném
+zapojení s krystalem 9.216MHz je možné pracovat s HC12 o taktovacích
+frekvencích do cca. 18..22MHz</li>
+<li>napájení 5V (stejně jako použitý AVR jednočip); možná časem
+zkusím odzkoušet převodník BDM na 3V, dalším řešením by bylo použít 3V
+AVR (ty bývají ale zase pomalejší)</li>
+</ul>
+<p>Podex spolupracuje s debuggery:
+</p>
+<ul>
+<li><a href="http://www.noicedebugger.com/help/bdm12.htm">NoICE Debugger</a></li>
+<li>
+<a href="http://www.softtools.com/">Sid Price</a> --
+    <a href="http://www.softtools.com/stingray_bdm12_features.htm">StingRay 68HC12</a> debugger</li>
+<li>
+<a href="http://www.gnu.org/software/gdb/">GNU gdb</a> -- hlavní 
+podporovaný debugger (a myslím, že vůbec nejlepší debugger ze všech), k použití
+spolu se sadou <a href="http://stephane.carrez.free.fr/m68hc11_port.php">GNU
+m68hc1x nástrojů binutils a gcc</a>
+  </li>
+</ul>
+
+<a name="1-4"></a><h2>Nějaká lepší řešení?</h2>
+
+<p>Podex vznikl z okamžité potřeby BDM krabičky asi za dva měsíce
+(nechtělo se nám draze platit, zvlášť když se na pracovištích fakulty a
+mezi studenty zřejmě uživí v budoucnu takových krabiček hodně). Hlavním
+cílem byla nízká cena, snadná výroba a okamžitá použitelnost (a podpora
+v GNU gdb). Nejedná se tedy o projekt na technické špičce, o ojedinělé
+ani výkonem nepřekonané zařízení. Pro úplnost zkusím uvést některá
+možná lepší řešení či zlepšení:
+</p>
+<ul>
+<li>rychlejší jednočip v podexu -- uživatel, vyžadující práci s
+rychleji taktovanými HC12, může zkusit použít rychlejší procesor řady
+AVR, postačí změnit jednu časovací konstantu v zdrojovém kódu firmwaru
+(a případně plošný spoj)</li>
+<li>přímé použití USB -- bylo by možno použít jednočip s přímou
+podporou USB (případně s nějakým vnějším řadičem) s výhodou vyšší
+rychlosti přenosu mezi krabičkou a počítačem a snadnějšího připojení k
+počítačům s USB bez sériového portu; v podexu byla ovšem dána přednost
+sériovému portu pro jeho jednoznačně nejširší podporu (asynchronní
+přenos se start a stopbity již od konce 19. století), pro možnost
+připojení k USB přes převodník (USB zařízení se naopak k sériovému
+portu připojuje velmi obtížně); velmi zajímavou možností USB by bylo
+připojit bez účasti jednočipu BDM rozhraní k převodníku mezi USB a
+programovatelným synchronním sériovým portem, jakým je například obvod
+FT2232C -- to ale nemám promyšleno a nevím, jestli by to bylo možné</li>
+<li>použití programovatelného sériového řadiče -- existují obvody,
+jimiž by zřejmě bylo možné vytvořit protějšek rozhraní BDM vhodným
+naprogramováním; takové řadiče jsou obsaženy v některých jednočipech
+(Hitachi)</li>
+<li>použití hradlového pole (nebo logických obvodů) -- dle mého
+názoru nejzajímavější řešení, umožňující co nejvyšší frekvence BDM; ve
+skutečnosti by stačilo naprogramovat do hradlového pole vysílání a
+příjem jedinéoho bitu přes BDM (to se odehrává v 16ti taktech), na to
+by možná stačila i opravdu maličká pole (GAL22V10?); obvod by se pak
+připojil k paralelnímu portu (Centronics-LPT) či k převodníku USB
+(FT245, FT2232C) -- pokud mi v budoucnu pohádkový dědeček věnuje
+kouzelnou mošnu s časem, rád tuto variantu vyzkouším a zkusím upravit
+podporu v GNU gdb, aby byla co nejvíce společná pro podex i hradlové
+pole</li>
+<li>podpora více rozhraní (BDM jiných procesorů, JTAG) -- jistě je
+výhodné mít univerzální zařízení k programování a ladění rozsáhlejší
+množiny procesorů a součástek, než je jen řada HC12; podex ale je
+a  zůstane malým a levným prostředkem pro HC12 -- zájemci o
+rozsáhlejší řešení je (snad brzy) najdou jinde
+  </li>
+</ul>
+<a name="1-4-1"></a><h3>Odkazy</h3>
+
+<p>Zde je několik odkazů naše nejdůležitější konkurenty a příbuzné:</p>
+<ul>
+<li>Armand ten Doeschatte, Karl Ran a jejich
+    <a href="http://savannah.nongnu.org/projects/freeice">Free AVR
+    ICE / GDB-Serializer</a> (pro AVR (s JTAGem), arm7/9 (JTAG), 68HC08,
+    683xx, 68HC16, 68HC12, coldfire)</li>
+<li>
+<a href="http://cmp.felk.cvut.cz/~pisa/">Ing. Pavel Píša</a>,
+    FEL ČVUT a jeho <a name="pavel-pisa"></a>
+    <a href="http://cmp.felk.cvut.cz/~pisa/m683xx/bdm_driver.html">BDM/GDB
+    pro 683xx</a>
+</li>
+<li>
+<a name="zdenek-rozehnal"></a><a href="http://micro.feld.cvut.cz/~rozehnal/">Ing. Zdeněk Rozehnal,
+  Csc.</a>, FEL ČVUT, pracující na BDM rozhraní tvořeném
+  hradlovým polem</li>
+<li>
+<a href="http://www.kevinro.com/products.html">Kevin Ross</a>
+  -- <a href="http://www.kevinro.com/bdm12.pdf">BDM12</a>, krabička,
+  s níž se podex snaží být kompatibilní</li>
+<li>
+<a name="malte-avenhaus"></a><a href="http://www.avenhaus.de/Malte/BDM12/">Malte Avenhaus</a>
+  -- první nám známý tvůrce BDM s volně dostupným zdrojovým kódem</li>
+</ul>
+
+
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- rozhraní 68HC12 BDM</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>

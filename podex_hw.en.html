@@ -1,0 +1,280 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- 68HC12 BDM interface pod -- Hardware</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li><a href="index.en.html">Podex, 68HC12 BDM</a></li>
+<li>
+<i>Hardware</i><ul>
+<li><a href="podex_hw.en.html#2-1">Schematics</a></li>
+<li>
+<a href="podex_hw.en.html#2-2">Construction</a><ul>
+<li><a href="podex_hw.en.html#2-2-1">"Printed" circuit board</a></li>
+<li><a href="podex_hw.en.html#2-2-2">List of components</a></li>
+</ul>
+</li>
+<li><a href="podex_hw.en.html#2-3">Firmware flashing</a></li>
+</ul>
+</li>
+<li><a href="podex_fw.en.html">Firmware (program inside podex)</a></li>
+<li><a href="podex_gdb.en.html">Software</a></li>
+<li><a href="podex_eg.en.html">Example application</a></li>
+<li><a href="podex_faq.en.html">FAQ</a></li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>Hardware</h1>[ <a href="podex_hw.html">česky</a> ]</td>
+</tr></table>
+<hr>
+<a name="podex_hw.en"></a>
+
+<a name="2-1"></a><h2>Schematics</h2>
+
+<p>To connect a wire on one side and RS232 on the other to the MCU is
+almost as difficult as to connect a bulb to battery in a torch.
+</p>
+<table border="0">
+<tr><td align="center"><img src="hw/podex_sch.gif" alt="Schéma zapojení podexu"></td></tr>
+<tr><td align="center"><em>Schéma zapojení podexu</em></td></tr>
+</table>
+<p>RS232 signals TxD, RxD, RTS, CTS (in schematics marked from podex'
+point of view) are connected to AVR MCU via buffer U2, MAX232. In
+prototype, there has been used "worse" variant MAX232 (no A suffix),
+which may require 1uF capacitors around it (on PCB the size 1206 was
+chosen). Thay can be tantalum, but they are also available in ceramic
+with this capacity (wow, that progress... on Taiwan they are really
+working hard). Connector K1 can be plugged directly to the COM-port of
+IBM PC. LEDs D1, D2 acts as indicators of activity and error state and
+also can be controlled by software of control computer. There are
+signals MOSI, MISO and SCK of serial programming interface of AVR and
+its /RESET signal available on connector K3, which serve (together with
+GND potential from K1 or K2) as an interface for programming FLASH of
+AVR by podex firmware. PCB allows connecting a switch S1 for resetting
+AVR, but this shoudln't be needed. Clock for AVR is obtained from
+crystal X1 with the most desirable frequency of 9.216MHz -- maximal
+supported rate for 5V AT90S2313 is 10MHz and 9.216MHz is the nearest
+lower rate, which allows precise division to 115200b/s serial transfer.
+Crystal is connected through point J1, which should be disconnected and
+then get clock from external source via connector K2, for example from
+EClock signal of HC12 CPU. Connector K2 is to be connected to BDM, and
+among this external clock contains three-state signal BDM(BKGD), signal
+/RESET and software controlled lines MODA, MODB, allowing use of extended
+memory (bus) of HC12 CPU.</p>
+
+<a name="2-2"></a><h2>Construction</h2>
+
+<p>Podex has been designed on two-sided PCB with SMD components mounted
+on both sides. The most narrow distance between conductors is cca. 0.2mm,
+but some very kind people at <a href="http://www.fm.vslib.cz/~kes/pcb_lab/">one
+PCB laboratory</a>, which officialy supports only spaces greater than 0.25mm,
+made boards of podex in a perfect quality. Board has to be put
+to a cover of two connectors Canon DB9. It is placed between pins of
+these connectors and surface soldered to these pins (which are ordinary
+used for soldering with cable wires). Connectors are used this way to
+hold a board in position. Connector K1 is female, according to RS232
+connection, K2 is male to avoid their swapping. LEDs are round with 3mm
+diameter, if they will be used, it would be very nice to drill holes
+for them in a cover. As a programming connector K3 I have used
+SIL (single-in-line) sockets, available as a line, which can be broken to
+smaller pieces. Pay attention for this
+component not to be too much thick to fit in a cover. J1 can be hardly
+connected by a wire, if you won't use external clock (otherwise, let it
+disconnected). You will pobably never need a S1 switch. If you can't
+use PCB of this layout or you can't order fabrication of it, you can
+build the circuit on a universal PCB -- it is very simple.
+</p>
+<a name="2-2-1"></a><h3>"Printed" circuit board</h3>
+
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td><table border="0">
+<tr><td align="center"><img src="hw/podex_pcb_front.gif" alt="PCB (upper layer)"></td></tr>
+<tr><td align="center"><em>PCB (upper layer)</em></td></tr>
+</table></td>
+<td><table border="0">
+<tr><td align="center"><img src="hw/podex_pcb_back.gif" alt="PCB (lower layer)"></td></tr>
+<tr><td align="center"><em>PCB (lower layer)</em></td></tr>
+</table></td>
+</tr>
+<tr>
+<td><table border="0">
+<tr><td align="center"><img src="hw/podex_asmbl_front.gif" alt="components placement (upper side)"></td></tr>
+<tr><td align="center"><em>components placement (upper side)</em></td></tr>
+</table></td>
+<td><table border="0">
+<tr><td align="center"><img src="hw/podex_asmbl_back.gif" alt="components placement (lower side)"></td></tr>
+<tr><td align="center"><em>components placement (lower side)</em></td></tr>
+</table></td>
+</tr>
+<tr><td colspan="2">
+    <ul>
+<li><a href="hw/podex_pcb.zip">board layout in Gerber format
+      and CNC drill coordinates</a></li>
+<li>board layout pictures in
+        <a href="hw/podex_pcb_eps.zip">EPS (zipped)</a> and
+        <a href="hw/podex_pcb.pdf">in one PDF</a>
+</li>
+</ul>
+  </td></tr>
+</table>
+
+<a name="2-2-2"></a><h3>List of components</h3>
+
+
+  
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>
+      <em>označení</em>
+    </td>
+<td>
+      <em>typ</em>
+    </td>
+<td>
+      <em>pouzdro</em>
+    </td>
+<td>
+      <em>hodnota</em>
+    </td>
+</tr>
+<tr>
+<td>U1</td>
+<td>AT90S2313</td>
+<td>SO20W</td>
+<td></td>
+</tr>
+<tr>
+<td>U2</td>
+<td>MAX232</td>
+<td>SO16</td>
+<td></td>
+</tr>
+<tr>
+<td>K1, K2</td>
+<td>DB9</td>
+<td>DB9SM</td>
+<td></td>
+</tr>
+<tr>
+<td>D1</td>
+<td>LED</td>
+<td>LED_3mm</td>
+<td>R</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>LED</td>
+<td>LED_3mm</td>
+<td>G</td>
+</tr>
+<tr>
+<td>C1, C2</td>
+<td>CAPACITOR</td>
+<td>0805</td>
+<td>33p</td>
+</tr>
+<tr>
+<td>C8</td>
+<td>CAPACITOR</td>
+<td>0805</td>
+<td>u1</td>
+</tr>
+<tr>
+<td>R1, R2</td>
+<td>RESISTOR</td>
+<td>0805</td>
+<td>330</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>RESISTOR</td>
+<td>0805</td>
+<td>10k</td>
+</tr>
+<tr>
+<td>S1</td>
+<td>SWITCH_PUSHBUTTON_NO</td>
+<td>JUMPER2</td>
+<td></td>
+</tr>
+<tr>
+<td>X1</td>
+<td>CRYSTAL</td>
+<td>HC49</td>
+<td>9.216MHz</td>
+</tr>
+<tr>
+<td>J1</td>
+<td>JUMPER</td>
+<td>JUMPER2</td>
+<td></td>
+</tr>
+<tr>
+<td>C3, C4, C5, C6, C7</td>
+<td>CAPACITOR</td>
+<td>1206</td>
+<td>1u</td>
+</tr>
+<tr>
+<td>K3</td>
+<td>HEADER3</td>
+<td>JUMPER4</td>
+<td></td>
+</tr>
+</table>
+
+
+
+<p>Podex box is connected to control computer by direct plugging it to
+RS232 DB9 connector or by a cable, which must contain signals RTS and
+CTS. For BDM interface, there is a standardized 6pin connector,
+recommended by HC12 documentation, for use of lines MODA, MODB there is
+its 10pin extension. Pinout of K2 connector is chosen to allow direct
+interconnection of self-cutting DB9 connector on the podex side and 6(10)pin
+self-cutting connector PFL on the other side of AWG cable.
+</p>
+<table border="0">
+<tr><td align="center"><img src="hw/podex_bdm.gif" alt="BDM connectors connection"></td></tr>
+<tr><td align="center"><em>BDM connectors connection</em></td></tr>
+</table>
+<img src="hw/podex_bdm_foto.gif" width="800" height="200" alt="photo">
+
+<a name="2-3"></a><h2>Firmware flashing</h2>
+
+<p>Firmware is loaded to FLASH of AVR AT90S2313 via connector K3. For
+this it is sufficient to connect serial programming interface signals
+to parallel interface LPT/Centronics according to following schematic,
+widely used in AVR community and known as a "Direct AVR Parallel
+Access":</p>
+<table border="0">
+<tr><td align="center"><img src="hw/avr_dapa.gif" alt="Zapojení programátoru AVR přes LPT"></td></tr>
+<tr><td align="center"><em>Zapojení programátoru AVR přes LPT</em></td></tr>
+</table>
+<p>Attention, there should be also conected a ground of podex (GND) to
+a control computer during programing, using a connector K1. Also it is
+needed to power flashed podex by 5V source via K2 connector (it is
+possible to power it from a HC12 board, if there aren't used lines
+MODA, MODB).</p>
+<p>With above mentioned parallel port connection there can be
+used eg. flashing software <a href="http://www.nongnu.org/uisp/">uisp</a>.
+The <a href="podex_fw.en.html#podex-hex">firmware</a> is then loaded eg. by
+command</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+uisp -dlpt=0x378 -dprog=dapa --erase --upload --verify if=podex.hex -v=3 --hash=12
+</pre></td></tr></table></blockquote>
+<p>(0x378 is LPT base address, podex.hex is filename of the firmware, for more
+see uisp docs). After loading of firmware the podex is finished and ready to
+operate with HC12.</p>
+
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- 68HC12 BDM interface pod</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- rozhraní 68HC12 BDM -- Hardware</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li><a href="index.html">Podex, 68HC12 BDM</a></li>
+<li>
+<i>Hardware</i><ul>
+<li><a href="podex_hw.html#2-1">Zapojení</a></li>
+<li>
+<a href="podex_hw.html#2-2">Stavba</a><ul>
+<li><a href="podex_hw.html#2-2-1">Plošný spoj</a></li>
+<li><a href="podex_hw.html#2-2-2">Seznam součástek</a></li>
+</ul>
+</li>
+<li><a href="podex_hw.html#2-3">Programování firmware</a></li>
+</ul>
+</li>
+<li><a href="podex_fw.html">Firmware (program unvitř podexu)</a></li>
+<li><a href="podex_gdb.html">Software</a></li>
+<li><a href="podex_eg.html">Příklad použití</a></li>
+<li><a href="podex_faq.html">ČKD</a></li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>Hardware</h1>[ <a href="podex_hw.en.html">english</a> ]</td>
+</tr></table>
+<hr>
+<a name="podex_hw"></a>
+
+<a name="2-1"></a><h2>Zapojení</h2>
+
+<p>Připojit k jednočipu jeden drát a z druhé strany RS232 je stejně
+objevné a tajuplné, jako zapojit žárovku k baterii v kapesní svítilně.
+</p>
+<table border="0">
+<tr><td align="center"><img src="hw/podex_sch.gif" alt="Schéma zapojení podexu"></td></tr>
+<tr><td align="center"><em>Schéma zapojení podexu</em></td></tr>
+</table>
+<p>Signály TxD, RxD, RTS, CTS (v schématu značeno z hlediska podexu)
+sériového rozhraní RS232 jsou k jednočipu AVR připojeny přes budič U2,
+MAX232. V prototypu byla použita "horší" a levnější varianta MAX232 bez
+přípony A, k níž by měly být připojeny kondenzátory 1uF (na plošném
+spoji formát 1206). Tyto mohou být tantalové, ale dají se sehnat i
+keramické téže velikosti (ten pokrok, kde se to zastaví...). Konektor
+K1 je možno zapojit přímo do sériového portu IBM PC. Svítivé diody D1,
+D2 slouží jako ukazatele činnosti a chybového stavu a rovněž mohou být
+libovolně ovládány z programu řídicího počítače. Na konektor K3 jsou
+vyvedeny signály MOSI, MISO, SCK sériového programovacího rozhraní
+AT90S2313 a signál /RESET, kterými (spolu s připojenou zemí GND
+konektoru K1 nebo K2) je do FLASHe jednočipu AVR nahráván firmware.
+Plošný spoj umožňuje připojit spínač S1 na vynulování AVR (nemělo by
+být potřeba). Hodinový signál jednočipu je čerpán z krystalu X1 o
+frekvenci nejlépe 9.216MHz -- nejvyšší výrobcem udaná frekvence pro 5V
+AT90S2313 je 10MHz a 9.216MHz je nejbližší nižší frekvencí, z níž lze
+dobře vydělit takt pro 115200b/s sériový přenos. Krystal je připojen
+přes propojku J1, kterou je možno rozpojit a hodiny čerpat zvenčí přes
+konektor K2, například ze signálu EClock procesoru HC12. Na konektor
+K2, určený k připojení BDM, je kromě zmíněných hodin a napájení vyveden
+třístavový signál BDM (BKGD), signál /RESET a dále programově ovládané
+linky MODA, MODB umožňující práci s rozšířenou pamětí (sběrnicí) procesoru
+HC12.
+</p>
+
+<a name="2-2"></a><h2>Stavba</h2>
+
+<p>Podex byl navržen na oboustranném plošném spoji s oboustrannou
+povrchovou montáží součástek. Nejužší mezera je
+široká přibližně 0.2mm, ale na <a href="http://www.fm.vslib.cz/~kes/pcb_lab/">báječném a levném pracovišti v Liberci</a>, kde
+oficiálně podporují mezery a spoje nad 0.25mm, vyrobili destičky moc hezky.
+Destička je určena k umístění do krytky na dva
+protilehlé konektory Canon DB9. Je vsunuta mezi pájecí špičky (sloužící
+obvykle k pájení vodičů kabelu) těchto konektorů a povrchově připájena
+k těmto špičkám ploškami na desce. Konektory tedy zároveň drží destičku
+v krytce. Konektor K1 je samičí, aby odpovídal zapojení RS232, K2
+samčí, aby nedošlo k jejich záměně. Svítivé diody byly použity kruhové
+o průměru 3mm, pokud budou
+osazeny, není od věci vyvrtat pro ně otvory v krytce. Jako programovací
+konektor K3 jsem použil 4 dutinky "precizní" lámací lišty -- pozor, aby
+se součástky do krytky vešly. Propojku J1 můžete natvrdo propojit,
+nebudete-li používat vnějších hodin (jinak ji nechte rozpojenu). Spínač
+S1 nejspíše nebudete nikdy potřebovat. Pokud se vám nehodí navržený
+plošný spoj nebo jej nemáte kde objednat, postavte si zapojení na desce
+univerzálního plošného spoje -- obvod je velmi jednoduchý.
+</p>
+<a name="2-2-1"></a><h3>Plošný spoj</h3>
+
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td><table border="0">
+<tr><td align="center"><img src="hw/podex_pcb_front.gif" alt="plošný spoj (horní vrstva)"></td></tr>
+<tr><td align="center"><em>plošný spoj (horní vrstva)</em></td></tr>
+</table></td>
+<td><table border="0">
+<tr><td align="center"><img src="hw/podex_pcb_back.gif" alt="plošný spoj (spodní vrstva)"></td></tr>
+<tr><td align="center"><em>plošný spoj (spodní vrstva)</em></td></tr>
+</table></td>
+</tr>
+<tr>
+<td><table border="0">
+<tr><td align="center"><img src="hw/podex_asmbl_front.gif" alt="osazení desky (shora)"></td></tr>
+<tr><td align="center"><em>osazení desky (shora)</em></td></tr>
+</table></td>
+<td><table border="0">
+<tr><td align="center"><img src="hw/podex_asmbl_back.gif" alt="osazení desky (zdola)"></td></tr>
+<tr><td align="center"><em>osazení desky (zdola)</em></td></tr>
+</table></td>
+</tr>
+<tr><td colspan="2">
+    <ul>
+<li><a href="hw/podex_pcb.zip">podklady pro výrobu
+        plošných spojů ve formátu Gerber a vrtací souřadnice</a></li>
+<li>obrazce plošných spojů a rozmístění součástek ve formátu
+        <a href="hw/podex_pcb_eps.zip">EPS (zabalené)</a> a
+        <a href="hw/podex_pcb.pdf">vcelku v PDF</a>
+</li>
+</ul>
+  </td></tr>
+</table>
+
+<a name="2-2-2"></a><h3>Seznam součástek</h3>
+
+
+  
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+<td>
+      <em>označení</em>
+    </td>
+<td>
+      <em>typ</em>
+    </td>
+<td>
+      <em>pouzdro</em>
+    </td>
+<td>
+      <em>hodnota</em>
+    </td>
+</tr>
+<tr>
+<td>U1</td>
+<td>AT90S2313</td>
+<td>SO20W</td>
+<td></td>
+</tr>
+<tr>
+<td>U2</td>
+<td>MAX232</td>
+<td>SO16</td>
+<td></td>
+</tr>
+<tr>
+<td>K1, K2</td>
+<td>DB9</td>
+<td>DB9SM</td>
+<td></td>
+</tr>
+<tr>
+<td>D1</td>
+<td>LED</td>
+<td>LED_3mm</td>
+<td>R</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>LED</td>
+<td>LED_3mm</td>
+<td>G</td>
+</tr>
+<tr>
+<td>C1, C2</td>
+<td>CAPACITOR</td>
+<td>0805</td>
+<td>33p</td>
+</tr>
+<tr>
+<td>C8</td>
+<td>CAPACITOR</td>
+<td>0805</td>
+<td>u1</td>
+</tr>
+<tr>
+<td>R1, R2</td>
+<td>RESISTOR</td>
+<td>0805</td>
+<td>330</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>RESISTOR</td>
+<td>0805</td>
+<td>10k</td>
+</tr>
+<tr>
+<td>S1</td>
+<td>SWITCH_PUSHBUTTON_NO</td>
+<td>JUMPER2</td>
+<td></td>
+</tr>
+<tr>
+<td>X1</td>
+<td>CRYSTAL</td>
+<td>HC49</td>
+<td>9.216MHz</td>
+</tr>
+<tr>
+<td>J1</td>
+<td>JUMPER</td>
+<td>JUMPER2</td>
+<td></td>
+</tr>
+<tr>
+<td>C3, C4, C5, C6, C7</td>
+<td>CAPACITOR</td>
+<td>1206</td>
+<td>1u</td>
+</tr>
+<tr>
+<td>K3</td>
+<td>HEADER3</td>
+<td>JUMPER4</td>
+<td></td>
+</tr>
+</table>
+
+
+
+<p>Krabička podexu se propojuje s řídicím počítačem buď přímým
+zasunutím do RS232 DB9 konektoru, nebo propojovacím kabelem, který
+ovšem musí obsahovat i RTS  a CTS signály. Pro BDM rozhraní je
+dokumentací k procesorům HC12 stanoven standardní 6tipólový konektor,
+pro používání linek MODA, MODB je doporučeno jeho 10tipólové rozšíření.
+Konektor K2 je zapojen tak, aby jej bylo možné propojit kabelem AWG se
+samořezným konektorem DB9 na straně podexu a 6ti(10ti)pólovým
+samořezným konektorem PFL na druhém konci.
+</p>
+<table border="0">
+<tr><td align="center"><img src="hw/podex_bdm.gif" alt="Zapojení konektorů BDM"></td></tr>
+<tr><td align="center"><em>Zapojení konektorů BDM</em></td></tr>
+</table>
+<img src="hw/podex_bdm_foto.gif" width="800" height="200" alt="fotka">
+
+<a name="2-3"></a><h2>Programování firmware</h2>
+
+<p>Firmware je do FLASH paměti AVR AT90S2313 nahráván přes konektor K3.
+K programování stačí propojit signály sériového programovacího rozhraní
+s paralelním portem LPT/Centronics dle náledujícího, mezi uživateli AVR
+ustáleného, zapojení (Direct AVR Parallel Access):</p>
+<table border="0">
+<tr><td align="center"><img src="hw/avr_dapa.gif" alt="Zapojení programátoru AVR přes LPT"></td></tr>
+<tr><td align="center"><em>Zapojení programátoru AVR přes LPT</em></td></tr>
+</table>
+<p>Pozor, kromě signálů vyvedených na konektoru K3 je třeba propojit s
+programovacím počítačem i zem (GND), nejlépe konektorem K1. Zároveň je
+samozřejmě nutné napájet programovaný podex 5V přes konektor K2 (je
+možné napájet jej z desky s HC12, nejsou-li připojeny linky MODA,
+MODB).</p>
+<p>S takovýmto zapojením na paralelní port lze podex naprogramovat
+například programem <a href="http://www.nongnu.org/uisp/">uisp</a>.
+Připravený <a href="podex_fw.html#podex-hex">firmware</a> se nahraje
+například příkazem</p>
+<blockquote><table border="1" cellspacing="0" cellpadding="3"><tr><td><pre>
+uisp -dlpt=0x378 -dprog=dapa --erase --upload --verify if=podex.hex -v=3 --hash=12
+</pre></td></tr></table></blockquote>
+<p>(0x378 je základ adresy LPT portu, podex.hex je jméno souboru s
+firmwarem, více viz v dokumentaci k uisp). Naprogramováním firmware je podex
+hotov a schopen práce s HC12.</p>
+
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- rozhraní 68HC12 BDM</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>

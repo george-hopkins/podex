@@ -1,0 +1,121 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- 68HC12 BDM interface pod -- FAQ</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li><a href="index.en.html">Podex, 68HC12 BDM</a></li>
+<li><a href="podex_hw.en.html">Hardware</a></li>
+<li><a href="podex_fw.en.html">Firmware (program inside podex)</a></li>
+<li><a href="podex_gdb.en.html">Software</a></li>
+<li><a href="podex_eg.en.html">Example application</a></li>
+<li>
+<i>FAQ</i><ul>
+<li><a href="podex_faq.en.html#6-1">After few hours of Internet search, I have found about 20 BDM pods
+available. Why are you trying to augment existing chaos by another pod?</a></li>
+<li><a href="podex_faq.en.html#6-2">Why did you copy Kevin Ross' protocol? Don't you think it is
+morally wrong?</a></li>
+<li><a href="podex_faq.en.html#6-3">Why have you used AVR MCU? Why not HC08, HC11, HC(S)12? Why not
+PIC,...?</a></li>
+<li><a href="podex_faq.en.html#6-4">Where can I buy podex? How much does it cost?
+</a></li>
+<li><a href="podex_faq.en.html#6-5">What is podex able to? Which debuggers are able to work with?
+</a></li>
+<li><a href="podex_faq.en.html#6-6">What isn't podex able to?</a></li>
+<li><a href="podex_faq.en.html#6-7">Why writing to my FLASH doesn't work?</a></li>
+<li><a href="podex_faq.en.html#6-8">When trying to connect with gdb to target bdm12, I get a
+communication error (bdm12_put_packet RTS1-&gt;CTS1: Couldn't
+communicate with
+BDM12 pod)</a></li>
+</ul>
+</li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>FAQ</h1>[ <a href="podex_faq.html">česky</a> ]</td>
+</tr></table>
+<hr>
+<a name="podex_faq.en"></a>
+
+<a name="6-1"></a><h2>After few hours of Internet search, I have found about 20 BDM pods
+available. Why are you trying to augment existing chaos by another pod?</h2>
+
+<p>In present time (2004), I haven't found any BDM interface with
+freely available construction plans, ie. schematics and eventually a
+firmware, other than pod of <a href="index.en.html#malte-avenhaus">Malte Avenhaus</a>,
+which, however, could be
+used only after much stronger effort (to write a support to debugger),
+than contruction of whole podex.</p>
+<a name="6-2"></a><h2>Why did you copy Kevin Ross' protocol? Don't you think it is
+morally wrong?</h2>
+
+<p>By all means it is better to use existing, although a bit dumb,
+protocol, if it is sufficient, than to plague the world with another
+incompatible pod, moreover, to add another support code to gdb for the
+very same, only camouflaged thing -- to waste efforts to write a
+debugger port, debug the debugger... By all means it is better to unify
+with existing gdb port and to try to improve this port, which will help
+users of both pods. This solution also means to be supported by other
+debuggers, which supports Kevin Ross for a long time. I don't think, it
+is immoral, I haven't stole anything of Kevin Ross, I haven't ever seen
+his BDM pod, neither his debugger db12.exe. Anyway, many thanks to him
+for publishing his communication protocol.
+</p>
+<a name="6-3"></a><h2>Why have you used AVR MCU? Why not HC08, HC11, HC(S)12? Why not
+PIC,...?</h2>
+
+<p>AVR processors are cheap and little, they have very nice and
+consistent assembler, they aren't so fancy, as messy family of PIC,
+they have great and effective support of GNU tools. Firmware of podex
+isn't fixed to any specific AVR model, it works with AT90S2313 (well,
+not very fresh meat...), so it will work in other AVR as well.</p>
+<a name="6-4"></a><h2>Where can I buy podex? How much does it cost?
+</h2>
+
+<p>You cannot (at least at this moment). Podex is a construction plan
+published for free use. I don't know, if I would like somebody to sell
+it -- if you are interrested in production of PCB's, selling components
+or final pods, let me mail, we can think about it.</p>
+<a name="6-5"></a><h2>What is podex able to? Which debuggers are able to work with?
+</h2>
+
+<p>Podex can program and debug processors of Motorola 68HC12 and HCS12
+family, at this moment operating at 5V voltage and crystal frequency up
+to cca 20MHz, maybe also a higher. Podex is intended to be used with
+debugger GNU gdb, but it should work also with NoICE and StingRay.</p>
+<a name="6-6"></a><h2>What isn't podex able to?</h2>
+
+<p>To work with processors, other than HC(S)12 family, with other
+interfaces, than their BDM. Podex doesn't know JTAG, podex won't talk
+with HC08, HC11, neither M68300, neither with your mother-in-law...</p>
+<a name="6-7"></a><h2>Why writing to my FLASH doesn't work?</h2>
+
+<p>Are you using gdb? If you are, then make sure, you have a correct
+<a href="podex_gdb.en.html#gdb-flash">routines for erasing and writing to FLASH</a>.
+Are you using some
+another debugger? Mail to the vendor, your podex is OK.
+</p>
+<a name="6-8"></a><h2>When trying to connect with gdb to target bdm12, I get a
+communication error (bdm12_put_packet RTS1-&gt;CTS1: Couldn't
+communicate with
+BDM12 pod)</h2>
+
+<p>Do you have podex plugged directly into a serial port? If not, does
+your serial cable have wires even for both signals RTS and CTS? Are you
+trying to connect to <a href="podex_gdb.en.html#gdb-target">right port</a>?
+In a hopeless case, you can try to
+enlarge timeout constants in <a href="www/sw/gdb/src-2.91/bdm12.h">bdm12.h</a>,
+if you think your computer/bus is running out of resources.
+</p>
+
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- 68HC12 BDM interface pod</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>

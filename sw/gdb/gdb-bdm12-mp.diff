@@ -1,0 +1,57 @@
+diff -Nrup gdb-6.0-m68hc1x/gdb/bdm12.h gdb-6.0-m68hc1x-mp/gdb/bdm12.h
+--- gdb-6.0-m68hc1x/gdb/bdm12.h	2004-06-09 21:18:15.000000000 +0200
++++ gdb-6.0-m68hc1x-mp/gdb/bdm12.h	2004-11-17 00:08:49.000000000 +0100
+@@ -127,9 +127,9 @@ typedef enum {
+   BDM12_STATUS_STOPPED = 0x40,
+   BDM12_MAX_BREAKPOINTS = 2,
+   BDM12_BAUD_RATE = 115200,
+-  BDM12_COMM_TIMEOUT = 1, /* 1s timeout for serial ops */
+-  BDM12_ERASEFLASH_TIMEOUT = 1000, /* 200 ms timeout for flash erase program */
+-  BDM12_PROGRAMFLASH_TIMEOUT = 3 /* 3 ms/byte  timeout for flash burn program */
++  BDM12_COMM_TIMEOUT = 1000, /* 1s timeout for serial ops */
++  BDM12_ERASEFLASH_TIMEOUT = 3000, /* 3s timeout for flash erase program */
++  BDM12_PROGRAMFLASH_TIMEOUT = 5 /* 5ms/byte  timeout for flash burn program */
+ } BDM12_MISC;
+   
+ /* The bfd struct, as an opaque type.  */
+diff -Nrup gdb-6.0-m68hc1x/gdb/remote-bdm12.c gdb-6.0-m68hc1x-mp/gdb/remote-bdm12.c
+--- gdb-6.0-m68hc1x/gdb/remote-bdm12.c	2004-06-09 21:18:16.000000000 +0200
++++ gdb-6.0-m68hc1x-mp/gdb/remote-bdm12.c	2004-06-09 21:21:50.000000000 +0200
+@@ -100,6 +100,8 @@ static int program_loaded = 0;
+    back to the other bdm12_foo routines.  */
+ static int gdbbdm12_opened = 0;
+ 
++static int bdm12_stop_requested = 0;
++
+ static void
+ dump_mem (char *buf, int len)
+ {
+@@ -411,6 +413,7 @@ gdbbdm12_resume (ptid_t pid, int step, e
+ static void
+ gdbbdm12_stop (void)
+ {
++  bdm12_stop_requested = 0;
+   if (!bdm12_stop ())
+     {
+       quit ();
+@@ -420,7 +423,7 @@ gdbbdm12_stop (void)
+ static void
+ gdbbdm12_cntrl_c (int signo)
+ {
+-  gdbbdm12_stop ();
++  bdm12_stop_requested = 1;
+ }
+ 
+ /* Wait for inferior process to do something.  Return pid of child,
+@@ -454,7 +457,10 @@ gdbbdm12_wait (ptid_t pid, struct target
+ 
+   do
+     bdm12_stop_reason (&reason, &sigrc);
+-  while (reason == BDM12_RUNNING);
++  while ((reason == BDM12_RUNNING) && !bdm12_stop_requested);
++
++  if (bdm12_stop_requested)
++    gdbbdm12_stop ();
+ 
+   signal (SIGINT, prev_sigint);
+   resume_step = 0;

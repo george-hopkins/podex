@@ -1,0 +1,119 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+<title>Podex -- rozhraní 68HC12 BDM -- ČKD</title>
+</head>
+<body>
+<table border="0" width="100%"><tr>
+<td valign="top" align="left"><ul>
+<li><a href="index.html">Podex, 68HC12 BDM</a></li>
+<li><a href="podex_hw.html">Hardware</a></li>
+<li><a href="podex_fw.html">Firmware (program unvitř podexu)</a></li>
+<li><a href="podex_gdb.html">Software</a></li>
+<li><a href="podex_eg.html">Příklad použití</a></li>
+<li>
+<i>ČKD</i><ul>
+<li><a href="podex_faq.html#6-1">Během půldne jsem našel na Internetu asi 20 dostupných BDM
+krabiček. Proč se do stávajícího chaosu snažíte přidat další?</a></li>
+<li><a href="podex_faq.html#6-2">Proč jsi obšlehnul protokol Kevina Rosse? Nezdá se ti to podlé?</a></li>
+<li><a href="podex_faq.html#6-3">Proč jsi použil jednočip AVR? Proč ne HC08, HC11, HC(S)12? Proč ne
+PIC,...?</a></li>
+<li><a href="podex_faq.html#6-4">Kde koupím podex? Kolik stojí?</a></li>
+<li><a href="podex_faq.html#6-5">Co podex umí? S jakými debuggery pracuje?</a></li>
+<li><a href="podex_faq.html#6-6">Co podex neumí?</a></li>
+<li><a href="podex_faq.html#6-7">Proč mi nejde zapsat podexem do FLASH?</a></li>
+<li><a href="podex_faq.html#6-8">Při pokusu připojit se s gdb k target bdm12 mi to píše chybu
+komunikace (bdm12_put_packet RTS1-&gt;CTS1: Couldn't communicate with
+BDM12 pod)</a></li>
+</ul>
+</li>
+</ul></td>
+<td valign="bottom" align="right">
+<h1>ČKD</h1>[ <a href="podex_faq.en.html">english</a> ]</td>
+</tr></table>
+<hr>
+<a name="podex_faq"></a>
+
+  
+<a name="6-1"></a><h2>Během půldne jsem našel na Internetu asi 20 dostupných BDM
+krabiček. Proč se do stávajícího chaosu snažíte přidat další?</h2>
+
+<p>V současné době (2004) jsem nenašel žádné BDM rozhraní, od něhož by
+byl k dispozici kompletní stavební návod, tj. schema i případný
+firmware, nepočítaje krabičku <a href="index.html#malte-avenhaus">Malte Avenhause</a>, která by byla
+prakticky použitelná jen s vynaložením nesrovnatelně větší námahy (na
+psaní podpory pro debugger), než tvorba celého podexu.
+</p>
+<a name="6-2"></a><h2>Proč jsi obšlehnul protokol Kevina Rosse? Nezdá se ti to podlé?</h2>
+
+<p>Rozhodně je lepší použít stávající, byť blbý, protokol, pokud
+potřebám stačí, než zamořit svět další, s ničím nekompatibilní
+krabičkou, nadto přidávat do gdb další podporu pro tu samou věc, jen
+převlečenou do kabátu jiné barvy -- zbytečně plýtvat silami na psaní
+podpory, vychytávání chyb... Rozhodně je lepší sjednotit se s podporou
+v gdb a snažit se ji zlepšit, což prospěje uživatelům obou rozhraní.
+Nadto (alespoň teoreticky) získávám podporu debuggerů, které již dávno
+protokol Kevina Rosse používají. Podlé se mi to nezdá, Kevinu Rossovi
+jsem nic neukradl, jeho BDM12 krabičku jsem ani v životě neviděl,
+zrovna tak ne jeho debugger db12.exe. Každopádně mu děkuji za
+zveřejnění protkolu.
+</p>
+<a name="6-3"></a><h2>Proč jsi použil jednočip AVR? Proč ne HC08, HC11, HC(S)12? Proč ne
+PIC,...?</h2>
+
+<p>Procesory AVR jsou levné a malé, mají krásný a logický assembler,
+nejsou rozvětvené, jako zprzněná rodina PIC, mají výbornou a účinnou
+podporu nástrojů GNU. Na konkrétní model AVR není firmware vázán, když
+funguje na AT90S2313 (ano, není to nejnovější model...), dá se použít i
+v jiném AVR.
+</p>
+<a name="6-4"></a><h2>Kde koupím podex? Kolik stojí?</h2>
+
+<p>Nikde (zatím). Podex je návod na výrobu poskytovaný zdarma. Ani
+nevím, jestli bych chtěl, aby jej někdo vyráběl -- pokud má někdo o
+prodej plošných spojů, součástek nebo hotových výrobků zájem, nechť mi
+napíše a uvidíme.
+</p>
+<a name="6-5"></a><h2>Co podex umí? S jakými debuggery pracuje?</h2>
+
+<p>Podex umí programovat a ladit procesory Motorola 68HC12 a HCS12,
+zatím pracující na napětí 5V a s frekvencí krystalu zhruba do 20MHz,
+možná i rychlejší. Podex je určen pro použití s debuggerem GNU gdb, ale
+měl by snad pracovat i s NoICE a StingRay.
+</p>
+<a name="6-6"></a><h2>Co podex neumí?</h2>
+
+<p>Pracovat s jinými procesory, než s řadou HC(S)12, s jinými
+rozhraními, než s jejich BDM. Podex neumí JTAG, nedorozumí se s HC08,
+HC11 ani M68300, neumí štípat dříví...
+</p>
+<a name="6-7"></a><h2>Proč mi nejde zapsat podexem do FLASH?</h2>
+
+<p>Používáte gdb? Potom se přesvědčte, že používáte správné
+<a href="podex_gdb.html#gdb-flash">rutiny
+pro mazání a zápis do FLASH</a>. Používáte jiný debugger? Napište
+výrobci, v podexu chyba není.
+</p>
+<a name="6-8"></a><h2>Při pokusu připojit se s gdb k target bdm12 mi to píše chybu
+komunikace (bdm12_put_packet RTS1-&gt;CTS1: Couldn't communicate with
+BDM12 pod)</h2>
+
+<p>Máte podex připojen přímo do sériového portu? Pokud ne, má
+propojovací kabel zcela určitě žíly pro signál RTS i CTS? Snažíte se
+připojit k <a href="podex_gdb.html#gdb-target">správnému portu</a>?
+V nejhorším můžete zkusit zvětšit časovací
+konstanty v souboru <a href="www/sw/gdb/src-2.91/bdm12.h">bdm12.h</a>,
+pokud se vám zdá, že
+počítač/sběrnice padá samou zátěží na ústa.
+</p>
+
+<p></p>
+<br><hr size="1">
+<table border="0" width="100%"><tr>
+<td align="left"><em>Podex -- rozhraní 68HC12 BDM</em></td>
+<td align="center"><a href="http://duch.cz/podex/">http://duch.cz/podex/</a></td>
+<td align="right">
+<em>Marek Peca,</em> &lt;<a href="mailto:marek@duch.cz">marek@duch.cz</a>&gt;</td>
+</tr></table>
+</body>
+</html>
