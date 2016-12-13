@@ -1,0 +1,302 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%Title: (unknown), solder mask solder side
+%%Creator: pcb-bin 1.99p
+%%CreationDate: Fri Aug 13 01:16:07 2004
+%%For: marek (Marek P.,,,)
+%%LanguageLevel: 1
+%%Orientation: Portrait
+%%BoundingBox: -1 -1 163 101
+%%Pages: 0
+%%EndComments
+%%BeginProlog
+
+/PcbDict 200 dict def
+PcbDict begin
+PcbDict /DictMatrix matrix put
+
+% some constants
+/Black {0.0 mysetgray} def
+/White {1.0 mysetgray} def
+/TAN {0.207106781} def
+/MTAN {-0.207106781} def
+
+% draw a filled polygon
+% get (x,y)... and number of points from stack
+/PO {
+	/number exch def
+	newpath
+	moveto
+	number 1 sub { lineto } repeat
+	closepath fill stroke
+} def
+
+/P {
+% draw a pin-polygon,
+% get x, y and thickness from stack
+	/thickness exch def /y exch def /x exch def
+	gsave x y translate thickness thickness scale
+	0.5  MTAN
+	TAN  -0.5
+	MTAN -0.5
+	-0.5 MTAN
+	-0.5 TAN
+	MTAN 0.5
+	TAN  0.5
+	0.5  TAN
+	8 PO grestore
+} def
+
+/PV {
+% pin or via, x, y and thickness are on the stack
+	/drillinghole exch def /thickness exch def /y exch def /x exch def
+	x y thickness P
+% draw drilling hole
+	gsave White 0 setlinewidth
+   newpath x y drillinghole 2 div 0 360 arc closepath fill stroke
+   grestore
+} def
+
+/PVR {
+% pin or via, x, y and thickness are on the stack
+	/drillinghole exch def /thickness exch def /y exch def /x exch def
+	gsave 0 setlinewidth
+	newpath x y thickness 2 div 0 360 arc closepath fill stroke
+% draw drilling whole
+	White
+	newpath x y drillinghole 2 div 0 360 arc closepath fill stroke
+	grestore
+} def
+
+/PVSQ {
+% square pin or via, x, y and thickness are on the stack
+	/drillinghole exch def /thickness exch def /y exch def /x exch def
+	newpath x thickness 2 div sub y thickness 2 div sub moveto
+	thickness 0 rlineto 0 thickness rlineto
+	thickness neg 0 rlineto closepath fill stroke
+% draw drilling hole
+	gsave White 0 setlinewidth
+   newpath x y drillinghole 2 div 0 360 arc closepath fill stroke
+   grestore
+} def
+
+/DH {
+% drill helpher; x, y, hole, copper-thickness are on stack
+	/copper exch def /hole exch def /y exch def /x exch def
+   gsave copper setlinewidth
+   newpath x y hole copper add 2 div 0 360 arc closepath stroke
+   grestore
+} def
+
+/L {
+% line, get x1, y1, x2, y2 and thickness from stack
+	/thick exch def /y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	gsave thick setlinewidth
+	x1 y1 moveto x2 y2 lineto stroke
+	grestore
+} def
+
+/CL {
+% line, get x1, y1, x2, y2 and thickness from stack
+	/thick exch def /y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	gsave White thick setlinewidth
+	x1 y1 moveto x2 y2 lineto stroke
+	grestore
+} def
+
+/B {
+% filled box, get x1, y1, x2 and y2 from stack
+	/y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	newpath
+	x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto
+	closepath fill stroke
+} def
+
+/PA {
+% pad, same as line
+	L
+} def
+
+/A {
+% arc for elements, get x, y, width, height, thickness
+% startangle and delta-angle from stack
+  /delta exch def /start exch def /thickness exch def
+  /height exch def /width exch def /y exch def /x exch def
+% draw it
+	gsave thickness setlinewidth /save DictMatrix currentmatrix def
+% scaling is less then zero because the coord system has to be swapped
+	x y translate width neg height scale
+	0 0 1 start start delta add arc save setmatrix stroke
+	grestore
+} def
+
+/CA {
+% arc for elements, get x, y, width, height, thickness
+% startangle and delta-angle from stack
+  /delta exch def /start exch def /thickness exch def
+  /height exch def /width exch def /y exch def /x exch def
+% draw it
+	gsave White thickness setlinewidth /save DictMatrix currentmatrix def
+% scaling is less then zero because the coord system has to be swapped
+	x y translate width neg height scale
+	0 0 1 start start delta add arc save setmatrix stroke
+	grestore
+} def
+
+/CLRPV {
+% clears a pin/via for groundplane; x,y and thickness are on stack
+   /thickness exch def /y exch def /x exch def
+	gsave White x y thickness P grestore
+} def
+
+/CLRPVSQ {
+% clears a square pin, x,y and thickness are on stack
+	/thickness exch def /y exch def /x exch def
+   gsave White
+	newpath x thickness 2 div sub y thickness 2 div sub moveto
+	thickness 0 rlineto 0 thickness rlineto
+	thickness neg 0 rlineto closepath fill stroke
+	grestore
+} def
+
+/CLRPVR {
+% clears a round pin/via for groundplane; x,y and thickness are on the stack
+	/thickness exch def /y exch def /x exch def
+	gsave White 0 setlinewidth
+	newpath x y thickness 2 div 0 360 arc closepath fill stroke
+	grestore
+} def
+
+/CLRPA {
+% clear line, get x1, y1, x2, y2 and thickness from stack
+	/thick exch def /y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	gsave White thick setlinewidth
+	x1 y1 moveto x2 y2 lineto stroke
+	grestore
+} def
+
+/CLRB {
+% cleared box, get x1, y1, x2 and y2 from stack
+	/y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	gsave White newpath
+	x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto
+	closepath fill stroke
+	grestore
+} def
+
+/FILL {
+% draw a filled rectangle for the ground plane
+% get x1, y1, x2 and y2 from stack
+	/y2 exch def /x2 exch def /y1 exch def /x1 exch def
+   gsave 0 setlinewidth
+	newpath
+	x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto
+	closepath fill stroke
+   grestore
+} def
+
+/Outline {
+% outline, get x1, y1, x2 and y2 from stack
+	/y2 exch def /x2 exch def /y1 exch def /x1 exch def
+   gsave 0.175 setlinewidth
+	newpath
+	x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto
+	closepath stroke
+   grestore
+} def
+
+/Alignment {
+% alignment targets, get x1, y1, x2, y2 and distance from stack
+	/dis exch def /y2 exch def /x2 exch def /y1 exch def /x1 exch def
+   gsave 0.175 setlinewidth
+   newpath x1 y1 dis add moveto
+      0 dis 2 mul neg rlineto
+      dis neg dis rmoveto
+      dis 2 mul 0 rlineto
+   stroke
+   newpath x1 y1 dis 0 90 arcn stroke
+   newpath x1 y2 dis sub moveto 0 dis rlineto dis 0 rlineto stroke
+   newpath x2 y2 dis sub moveto
+      0 2 dis mul rlineto
+      dis dup neg rmoveto
+      2 dis mul neg 0 rlineto   stroke
+   newpath x2 y1 dis add moveto 0 dis neg rlineto dis neg 0 rlineto stroke
+   grestore
+} def
+
+/mysetgray {neg 1.0 add setgray} def
+/mysetrgbcolor {
+  /blue exch def /green exch def /red exch def
+  1.0 red sub 1.0 green sub 1.0 blue sub setrgbcolor
+} def
+%%EndProlog
+%%BeginDefaults
+%%EndDefaults
+%%BeginSetup
+0.0 setlinewidth
+1 setlinecap
+Black
+%%EndSetup
+gsave White newpath
+-1 -1 moveto 163 -1 lineto 163 101 lineto -1 101 lineto
+closepath fill stroke grestore
+% PCBMIN(-40000,-40000), PCBMAX(185000,99000)
+% PCBOFFSET(0,0), PCBSCALE(1.00000)
+% PCBSTARTDATA --- do not remove ---
+gsave
+0.00072 0.00072 scale
+0 0 translate
+1.000 1.000 scale
+0 139000 translate
+1 -1 scale
+40000 40000 translate
+/mysetgray { setgray } def
+/mysetrgbcolor { setrgbcolor } def
+
+-40000 -40000 185000 99000 20000 Alignment
+129500 9300 145000 17300 CLRB
+129500 41700 145000 49700 CLRB
+129500 30900 145000 38900 CLRB
+129500 20100 145000 28100 CLRB
+0 9300 15500 17300 CLRB
+0 41700 15500 49700 CLRB
+0 30900 15500 38900 CLRB
+0 20100 15500 28100 CLRB
+56200 31100 63800 35300 CLRB
+56200 24700 63800 28900 CLRB
+112100 34500 117500 43500 CLRB
+102500 34500 107900 43500 CLRB
+104700 46200 108900 53800 CLRB
+111100 46200 115300 53800 CLRB
+85700 24200 93300 28400 CLRB
+85700 30600 93300 34800 CLRB
+90600 14200 94800 21800 CLRB
+84200 14200 88400 21800 CLRB
+38600 46500 44000 55500 CLRB
+29000 46500 34400 55500 CLRB
+37000 19500 46000 24900 CLRB
+37000 29100 46000 34500 CLRB
+17500 52100 26500 57500 CLRB
+17500 42500 26500 47900 CLRB
+46200 39700 50400 47300 CLRB
+52600 39700 56800 47300 CLRB
+32500 1500 41500 6900 CLRB
+32500 11100 41500 16500 CLRB
+90600 37200 94800 44800 CLRB
+84200 37200 88400 44800 CLRB
+52000 51000 6600 CLRPVSQ
+52000 31000 6600 CLRPVR
+67500 18000 6600 CLRPVSQ
+77500 18000 6600 CLRPVR
+67500 41000 6600 CLRPVSQ
+77500 41000 6600 CLRPVR
+77500 29500 6600 CLRPVSQ
+67500 29500 6600 CLRPVR
+76000 53000 6600 CLRPVR
+66000 53000 6600 CLRPVR
+79000 6000 6600 CLRPVR
+69000 6000 6600 CLRPVR
+59000 6000 6600 CLRPVR
+49000 6000 6600 CLRPVR
+grestore
+% PCBENDDATA --- do not remove ---
+%%EOF

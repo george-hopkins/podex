@@ -1,0 +1,498 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%Title: (unknown), silkscreen, solder side
+%%Creator: pcb-bin 1.99p
+%%CreationDate: Fri Aug 13 01:16:07 2004
+%%For: marek (Marek P.,,,)
+%%LanguageLevel: 1
+%%Orientation: Portrait
+%%BoundingBox: -1 -1 163 101
+%%Pages: 0
+%%EndComments
+%%BeginProlog
+
+/PcbDict 200 dict def
+PcbDict begin
+PcbDict /DictMatrix matrix put
+
+% some constants
+/Black {0.0 mysetgray} def
+/White {1.0 mysetgray} def
+/TAN {0.207106781} def
+/MTAN {-0.207106781} def
+
+% draw a filled polygon
+% get (x,y)... and number of points from stack
+/PO {
+	/number exch def
+	newpath
+	moveto
+	number 1 sub { lineto } repeat
+	closepath fill stroke
+} def
+
+/P {
+% draw a pin-polygon,
+% get x, y and thickness from stack
+	/thickness exch def /y exch def /x exch def
+	gsave x y translate thickness thickness scale
+	0.5  MTAN
+	TAN  -0.5
+	MTAN -0.5
+	-0.5 MTAN
+	-0.5 TAN
+	MTAN 0.5
+	TAN  0.5
+	0.5  TAN
+	8 PO grestore
+} def
+
+/PV {
+% pin or via, x, y and thickness are on the stack
+	/drillinghole exch def /thickness exch def /y exch def /x exch def
+	x y thickness P
+% draw drilling hole
+	gsave White 0 setlinewidth
+   newpath x y drillinghole 2 div 0 360 arc closepath fill stroke
+   grestore
+} def
+
+/PVR {
+% pin or via, x, y and thickness are on the stack
+	/drillinghole exch def /thickness exch def /y exch def /x exch def
+	gsave 0 setlinewidth
+	newpath x y thickness 2 div 0 360 arc closepath fill stroke
+% draw drilling whole
+	White
+	newpath x y drillinghole 2 div 0 360 arc closepath fill stroke
+	grestore
+} def
+
+/PVSQ {
+% square pin or via, x, y and thickness are on the stack
+	/drillinghole exch def /thickness exch def /y exch def /x exch def
+	newpath x thickness 2 div sub y thickness 2 div sub moveto
+	thickness 0 rlineto 0 thickness rlineto
+	thickness neg 0 rlineto closepath fill stroke
+% draw drilling hole
+	gsave White 0 setlinewidth
+   newpath x y drillinghole 2 div 0 360 arc closepath fill stroke
+   grestore
+} def
+
+/DH {
+% drill helpher; x, y, hole, copper-thickness are on stack
+	/copper exch def /hole exch def /y exch def /x exch def
+   gsave copper setlinewidth
+   newpath x y hole copper add 2 div 0 360 arc closepath stroke
+   grestore
+} def
+
+/L {
+% line, get x1, y1, x2, y2 and thickness from stack
+	/thick exch def /y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	gsave thick setlinewidth
+	x1 y1 moveto x2 y2 lineto stroke
+	grestore
+} def
+
+/CL {
+% line, get x1, y1, x2, y2 and thickness from stack
+	/thick exch def /y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	gsave White thick setlinewidth
+	x1 y1 moveto x2 y2 lineto stroke
+	grestore
+} def
+
+/B {
+% filled box, get x1, y1, x2 and y2 from stack
+	/y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	newpath
+	x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto
+	closepath fill stroke
+} def
+
+/PA {
+% pad, same as line
+	L
+} def
+
+/A {
+% arc for elements, get x, y, width, height, thickness
+% startangle and delta-angle from stack
+  /delta exch def /start exch def /thickness exch def
+  /height exch def /width exch def /y exch def /x exch def
+% draw it
+	gsave thickness setlinewidth /save DictMatrix currentmatrix def
+% scaling is less then zero because the coord system has to be swapped
+	x y translate width neg height scale
+	0 0 1 start start delta add arc save setmatrix stroke
+	grestore
+} def
+
+/CA {
+% arc for elements, get x, y, width, height, thickness
+% startangle and delta-angle from stack
+  /delta exch def /start exch def /thickness exch def
+  /height exch def /width exch def /y exch def /x exch def
+% draw it
+	gsave White thickness setlinewidth /save DictMatrix currentmatrix def
+% scaling is less then zero because the coord system has to be swapped
+	x y translate width neg height scale
+	0 0 1 start start delta add arc save setmatrix stroke
+	grestore
+} def
+
+/CLRPV {
+% clears a pin/via for groundplane; x,y and thickness are on stack
+   /thickness exch def /y exch def /x exch def
+	gsave White x y thickness P grestore
+} def
+
+/CLRPVSQ {
+% clears a square pin, x,y and thickness are on stack
+	/thickness exch def /y exch def /x exch def
+   gsave White
+	newpath x thickness 2 div sub y thickness 2 div sub moveto
+	thickness 0 rlineto 0 thickness rlineto
+	thickness neg 0 rlineto closepath fill stroke
+	grestore
+} def
+
+/CLRPVR {
+% clears a round pin/via for groundplane; x,y and thickness are on the stack
+	/thickness exch def /y exch def /x exch def
+	gsave White 0 setlinewidth
+	newpath x y thickness 2 div 0 360 arc closepath fill stroke
+	grestore
+} def
+
+/CLRPA {
+% clear line, get x1, y1, x2, y2 and thickness from stack
+	/thick exch def /y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	gsave White thick setlinewidth
+	x1 y1 moveto x2 y2 lineto stroke
+	grestore
+} def
+
+/CLRB {
+% cleared box, get x1, y1, x2 and y2 from stack
+	/y2 exch def /x2 exch def /y1 exch def /x1 exch def
+	gsave White newpath
+	x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto
+	closepath fill stroke
+	grestore
+} def
+
+/FILL {
+% draw a filled rectangle for the ground plane
+% get x1, y1, x2 and y2 from stack
+	/y2 exch def /x2 exch def /y1 exch def /x1 exch def
+   gsave 0 setlinewidth
+	newpath
+	x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto
+	closepath fill stroke
+   grestore
+} def
+
+/Outline {
+% outline, get x1, y1, x2 and y2 from stack
+	/y2 exch def /x2 exch def /y1 exch def /x1 exch def
+   gsave 0.175 setlinewidth
+	newpath
+	x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto
+	closepath stroke
+   grestore
+} def
+
+/Alignment {
+% alignment targets, get x1, y1, x2, y2 and distance from stack
+	/dis exch def /y2 exch def /x2 exch def /y1 exch def /x1 exch def
+   gsave 0.175 setlinewidth
+   newpath x1 y1 dis add moveto
+      0 dis 2 mul neg rlineto
+      dis neg dis rmoveto
+      dis 2 mul 0 rlineto
+   stroke
+   newpath x1 y1 dis 0 90 arcn stroke
+   newpath x1 y2 dis sub moveto 0 dis rlineto dis 0 rlineto stroke
+   newpath x2 y2 dis sub moveto
+      0 2 dis mul rlineto
+      dis dup neg rmoveto
+      2 dis mul neg 0 rlineto   stroke
+   newpath x2 y1 dis add moveto 0 dis neg rlineto dis neg 0 rlineto stroke
+   grestore
+} def
+
+/mysetgray { setgray } def
+/mysetrgbcolor { setrgbcolor } def
+
+%%EndProlog
+%%BeginDefaults
+%%EndDefaults
+%%BeginSetup
+0.0 setlinewidth
+1 setlinecap
+Black
+%%EndSetup
+gsave White newpath
+-1 -1 moveto 163 -1 lineto 163 101 lineto -1 101 lineto
+closepath fill stroke grestore
+% PCBMIN(-40000,-40000), PCBMAX(185000,99000)
+% PCBOFFSET(0,0), PCBSCALE(1.00000)
+% PCBSTARTDATA --- do not remove ---
+gsave
+0.00072 0.00072 scale
+0 0 translate
+1.000 1.000 scale
+0 139000 translate
+1 -1 scale
+40000 40000 translate
+-40000 -40000 185000 99000 20000 Alignment
+64500 24000 64500 36000 1000 L
+55500 24000 64500 24000 1000 L
+55500 24000 55500 36000 1000 L
+55500 36000 64500 36000 1000 L
+56500 19000 58000 19000 400 L
+56000 19500 56500 19000 400 L
+56000 22500 56000 19500 400 L
+56000 22500 56500 23000 400 L
+56500 23000 58000 23000 400 L
+59201 22500 59701 23000 400 L
+59701 23000 61201 23000 400 L
+61201 23000 61701 22500 400 L
+61701 22500 61701 21500 400 L
+59201 19000 61701 21500 400 L
+59201 19000 61701 19000 400 L
+101600 33600 118400 33600 1000 L
+101600 44400 101600 33600 1000 L
+101600 44400 118400 44400 1000 L
+118400 44400 118400 33600 1000 L
+111500 28500 113000 28500 400 L
+111000 29000 111500 28500 400 L
+111000 32000 111000 29000 400 L
+111000 32000 111500 32500 400 L
+111500 32500 113000 32500 400 L
+114201 28500 116701 31000 400 L
+116701 32500 116701 31000 400 L
+114201 32500 116701 32500 400 L
+116000 54500 104000 54500 1000 L
+116000 45500 116000 54500 1000 L
+104000 45500 116000 45500 1000 L
+104000 54500 104000 45500 1000 L
+117500 50000 119000 50000 400 L
+117000 50500 117500 50000 400 L
+117000 53500 117000 50500 400 L
+117000 53500 117500 54000 400 L
+117500 54000 119000 54000 400 L
+120201 50500 120701 50000 400 L
+120201 51500 120201 50500 400 L
+120201 51500 120701 52000 400 L
+120701 52000 121701 52000 400 L
+121701 52000 122201 51500 400 L
+122201 51500 122201 50500 400 L
+121701 50000 122201 50500 400 L
+120701 50000 121701 50000 400 L
+120201 52500 120701 52000 400 L
+120201 53500 120201 52500 400 L
+120201 53500 120701 54000 400 L
+120701 54000 121701 54000 400 L
+121701 54000 122201 53500 400 L
+122201 53500 122201 52500 400 L
+121701 52000 122201 52500 400 L
+85000 23500 85000 35500 1000 L
+85000 35500 94000 35500 1000 L
+94000 23500 94000 35500 1000 L
+85000 23500 94000 23500 1000 L
+95000 31000 97000 31000 400 L
+97000 31000 97500 30500 400 L
+97500 30500 97500 29500 400 L
+97000 29000 97500 29500 400 L
+95500 29000 97000 29000 400 L
+95500 31000 95500 27000 400 L
+95500 29000 97500 27000 400 L
+98701 30500 99201 31000 400 L
+99201 31000 100201 31000 400 L
+100201 31000 100701 30500 400 L
+100701 30500 100701 27500 400 L
+100201 27000 100701 27500 400 L
+99201 27000 100201 27000 400 L
+98701 27500 99201 27000 400 L
+99201 29000 100701 29000 400 L
+83500 13500 95500 13500 1000 L
+83500 13500 83500 22500 1000 L
+83500 22500 95500 22500 1000 L
+95500 13500 95500 22500 1000 L
+87000 12500 89000 12500 400 L
+89000 12500 89500 12000 400 L
+89500 12000 89500 11000 400 L
+89000 10500 89500 11000 400 L
+87500 10500 89000 10500 400 L
+87500 12500 87500 8500 400 L
+87500 10500 89500 8500 400 L
+90701 12000 91201 12500 400 L
+91201 12500 92701 12500 400 L
+92701 12500 93201 12000 400 L
+93201 12000 93201 11000 400 L
+90701 8500 93201 11000 400 L
+90701 8500 93201 8500 400 L
+28100 45600 44900 45600 1000 L
+28100 45600 28100 56400 1000 L
+28100 56400 44900 56400 1000 L
+44900 45600 44900 56400 1000 L
+34000 40500 35500 40500 400 L
+33500 41000 34000 40500 400 L
+33500 44000 33500 41000 400 L
+33500 44000 34000 44500 400 L
+34000 44500 35500 44500 400 L
+36701 42500 38701 44500 400 L
+36701 42500 39201 42500 400 L
+38701 44500 38701 40500 400 L
+36100 18600 36100 35400 1000 L
+36100 35400 46900 35400 1000 L
+46900 18600 46900 35400 1000 L
+36100 18600 46900 18600 1000 L
+39500 25000 41000 25000 400 L
+39000 25500 39500 25000 400 L
+39000 28500 39000 25500 400 L
+39000 28500 39500 29000 400 L
+39500 29000 41000 29000 400 L
+42201 29000 44201 29000 400 L
+42201 29000 42201 27000 400 L
+42201 27000 42701 27500 400 L
+42701 27500 43701 27500 400 L
+43701 27500 44201 27000 400 L
+44201 27000 44201 25500 400 L
+43701 25000 44201 25500 400 L
+42701 25000 43701 25000 400 L
+42201 25500 42701 25000 400 L
+27400 58400 27400 41600 1000 L
+16600 41600 27400 41600 1000 L
+16600 58400 16600 41600 1000 L
+16600 58400 27400 58400 1000 L
+17000 36500 18500 36500 400 L
+16500 37000 17000 36500 400 L
+16500 40000 16500 37000 400 L
+16500 40000 17000 40500 400 L
+17000 40500 18500 40500 400 L
+21201 40500 21701 40000 400 L
+20201 40500 21201 40500 400 L
+19701 40000 20201 40500 400 L
+19701 40000 19701 37000 400 L
+19701 37000 20201 36500 400 L
+21201 38500 21701 38000 400 L
+19701 38500 21201 38500 400 L
+20201 36500 21201 36500 400 L
+21201 36500 21701 37000 400 L
+21701 38000 21701 37000 400 L
+45500 48000 57500 48000 1000 L
+57500 39000 57500 48000 1000 L
+45500 39000 57500 39000 1000 L
+45500 39000 45500 48000 1000 L
+56500 49000 58000 49000 400 L
+56000 49500 56500 49000 400 L
+56000 52500 56000 49500 400 L
+56000 52500 56500 53000 400 L
+56500 53000 58000 53000 400 L
+59701 49000 60701 49000 400 L
+60201 53000 60201 49000 400 L
+59201 52000 60201 53000 400 L
+31600 600 31600 17400 1000 L
+31600 17400 42400 17400 1000 L
+42400 600 42400 17400 1000 L
+31600 600 42400 600 1000 L
+34500 7000 36000 7000 400 L
+34000 7500 34500 7000 400 L
+34000 10500 34000 7500 400 L
+34000 10500 34500 11000 400 L
+34500 11000 36000 11000 400 L
+37201 10500 37701 11000 400 L
+37701 11000 38701 11000 400 L
+38701 11000 39201 10500 400 L
+39201 10500 39201 7500 400 L
+38701 7000 39201 7500 400 L
+37701 7000 38701 7000 400 L
+37201 7500 37701 7000 400 L
+37701 9000 39201 9000 400 L
+83500 36500 95500 36500 1000 L
+83500 36500 83500 45500 1000 L
+83500 45500 95500 45500 1000 L
+95500 36500 95500 45500 1000 L
+86500 50500 88500 50500 400 L
+88500 50500 89000 50000 400 L
+89000 50000 89000 49000 400 L
+88500 48500 89000 49000 400 L
+87000 48500 88500 48500 400 L
+87000 50500 87000 46500 400 L
+87000 48500 89000 46500 400 L
+90701 46500 91701 46500 400 L
+91201 50500 91201 46500 400 L
+90201 49500 91201 50500 400 L
+46000 55000 48000 55000 400 L
+47000 56000 47000 54000 400 L
+43500 2000 45500 2000 400 L
+44500 3000 44500 1000 400 L
+48000 21000 50000 21000 400 L
+49000 22000 49000 20000 400 L
+13000 55000 15000 55000 400 L
+14000 56000 14000 54000 400 L
+119500 35500 121500 35500 400 L
+120500 36500 120500 34500 400 L
+52000 51000 6000 CLRPVSQ
+52000 31000 6000 CLRPVR
+67500 18000 6000 CLRPVSQ
+77500 18000 6000 CLRPVR
+67500 41000 6000 CLRPVSQ
+77500 41000 6000 CLRPVR
+67500 29500 6000 CLRPVR
+49000 6000 6000 CLRPVR
+133500 51100 141000 51100 6000 CLRPA
+4000 51100 11500 51100 6000 CLRPA
+86100 7000 88900 7000 2000 CLRPA
+85100 11000 89900 13000 CLRB
+85100 16000 89900 18000 CLRB
+85100 21000 89900 23000 CLRB
+85100 26000 89900 28000 CLRB
+85100 31000 89900 33000 CLRB
+85100 36000 89900 38000 CLRB
+85100 41000 89900 43000 CLRB
+85100 46000 89900 48000 CLRB
+85100 51000 89900 53000 CLRB
+123000 51000 127800 53000 CLRB
+123000 46000 127800 48000 CLRB
+123000 41000 127800 43000 CLRB
+123000 36000 127800 38000 CLRB
+123000 31000 127800 33000 CLRB
+123000 26000 127800 28000 CLRB
+123000 21000 127800 23000 CLRB
+123000 16000 127800 18000 CLRB
+123000 11000 127800 13000 CLRB
+123000 6000 127800 8000 CLRB
+56500 31400 63500 35000 CLRB
+56500 25000 63500 28600 CLRB
+18100 3000 20900 3000 2000 CLRPA
+17100 7000 21900 9000 CLRB
+17100 12000 21900 14000 CLRB
+17100 17000 21900 19000 CLRB
+17100 22000 21900 24000 CLRB
+17100 27000 21900 29000 CLRB
+17100 32000 21900 34000 CLRB
+17100 37000 21900 39000 CLRB
+37500 37000 42300 39000 CLRB
+37500 32000 42300 34000 CLRB
+37500 27000 42300 29000 CLRB
+37500 22000 42300 24000 CLRB
+37500 17000 42300 19000 CLRB
+37500 12000 42300 14000 CLRB
+37500 7000 42300 9000 CLRB
+37500 2000 42300 4000 CLRB
+84500 14500 88100 21500 CLRB
+37300 19800 45700 24600 CLRB
+37300 29400 45700 34200 CLRB
+46500 40000 50100 47000 CLRB
+52900 40000 56500 47000 CLRB
+32800 1800 41200 6600 CLRB
+32800 11400 41200 16200 CLRB
+84500 37500 88100 44500 CLRB
+grestore
+% PCBENDDATA --- do not remove ---
+%%EOF
