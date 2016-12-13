@@ -5,6 +5,7 @@
 ## Documentation
 
  * [Hardware](./docs/hardware.md)
+ * [FAQ](./docs/faq.md)
 
 ## Authors
 
