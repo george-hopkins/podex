@@ -1,6 +1,6 @@
-# Podex
+# podex
 
-**Podex** is an AVR-based BDM interface for 68HC12 processors.
+**podex** is an AVR-based BDM interface for 68HC12 processors.
 
 ## Documentation
 
